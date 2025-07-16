@@ -188,7 +188,12 @@
     }
   }
 
+  let isMobile = false;
   onMount(() => {
+    isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    window.addEventListener('resize', () => {
+      isMobile = window.innerWidth <= 768;
+    });
     showDataLayer(true);
 
     setInterval(() => {
@@ -261,7 +266,7 @@
   </div>
 {:else}
   <Expandable bind:section={expandedSection} {icon} {title} subtitle={dataLayerOptions[layerId]}>
-    {#if layer && (layer.id == 'monthlyFlux' || layer.id == 'hourlyShade')}
+    {#if !isMobile && layer && (layer.id == 'monthlyFlux' || layer.id == 'hourlyShade')}
       <div class="w-full flex flex-col items-center mb-2 month-changer-top">
         <div class="surface on-surface-text pr-4 text-center label-large rounded-full shadow-md w-full flex items-center justify-between">
           {#if layer.id == 'monthlyFlux'}
@@ -434,7 +439,7 @@
 </div>
 <div class="absolute bottom-6 left-0 w-full">
   <div class="md:mr-96 mr-80 grid place-items-center">
-    {#if layer}
+    {#if !isMobile && layer}
       <div
         class="flex items-center surface on-surface-text pr-4 text-center label-large rounded-full shadow-md"
       >

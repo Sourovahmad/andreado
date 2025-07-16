@@ -111,35 +111,7 @@
         </div>
       {/if}
     </div>
-    {#if showDrawer && expandedSection === 'Data Layers endpoint'}
-      <div class="fixed top-4 left-1/2 -translate-x-1/2 w-[90vw] max-w-xl z-[60]">
-        <div class="surface on-surface-text pr-4 text-center label-large rounded-full shadow-md w-full flex items-center justify-between">
-          {#if layerId === 'monthlyFlux'}
-            <md-slider
-              range
-              min={0}
-              max={11}
-              value-start={month}
-              value-end={month}
-              on:input={e => month = e.target.valueStart}
-              class="flex-1"
-            />
-            <span class="w-8">{monthNames[month]}</span>
-          {:else if layerId === 'hourlyShade'}
-            <md-slider
-              range
-              min={0}
-              max={23}
-              value-start={hour}
-              value-end={hour}
-              on:input={e => hour = e.target.valueStart}
-              class="flex-1"
-            />
-            <span class="w-24 whitespace-nowrap">{monthNames[month]} {day} {hourLabel}</span>
-          {/if}
-        </div>
-      </div>
-    {/if}
+
     <div bind:this={mapElement} class="absolute inset-0 w-full h-full z-10" />
     <button class="fixed bottom-24 right-4 z-30 bg-white rounded-xl shadow-lg p-4 flex items-center justify-center" on:click={() => showDrawer = true} aria-label="Open menu">
       <svg width="28" height="28" fill="none" viewBox="0 0 24 24"><rect y="5" width="24" height="2" rx="1" fill="#222"/><rect y="11" width="24" height="2" rx="1" fill="#222"/><rect y="17" width="24" height="2" rx="1" fill="#222"/></svg>
