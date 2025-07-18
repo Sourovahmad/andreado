@@ -23,6 +23,8 @@
   import DataLayersSection from './DataLayersSection.svelte';
   import SolarPotentialSection from './SolarPotentialSection.svelte';
   import { onMount } from 'svelte';
+  import { sidebarMobileState } from './sidebarMobileState';
+  import { get } from 'svelte/store';
 
   export let location: google.maps.LatLng;
   export let map: google.maps.Map;
@@ -32,20 +34,53 @@
 
   let buildingInsights: BuildingInsightsResponse | undefined;
 
-  // State
+  // State (local, for desktop)
   let showPanels = true;
-
-  // User settings
-  let monthlyAverageEnergyBillInput = 120; // Average monthly energy bill in Italy (EUR)
+  let monthlyAverageEnergyBillInput = 120;
   let panelCapacityWattsInput = 400;
-  let energyCostPerKwhInput = 0.3; // Average energy cost per kWh in Italy (EUR)
+  let energyCostPerKwhInput = 0.3;
   let dcToAcDerateInput = 0.85;
+  let configId: number | undefined;
+
+  // For expandedSection, prefer prop, but fallback to store/local
+  let expandedSectionValue: string;
+  $: expandedSectionValue = isMobile ? $sidebarMobileState.expandedSection : expandedSection;
+
+  // Sync state with store on mobile
+  $: if (isMobile) {
+    // Read from store
+    ({
+      showPanels,
+      monthlyAverageEnergyBillInput,
+      panelCapacityWattsInput,
+      energyCostPerKwhInput,
+      dcToAcDerateInput,
+      configId
+    } = $sidebarMobileState);
+  } else {
+    // Write to store if switching to mobile
+    sidebarMobileState.set({
+      showPanels,
+      monthlyAverageEnergyBillInput,
+      panelCapacityWattsInput,
+      energyCostPerKwhInput,
+      dcToAcDerateInput,
+      expandedSection,
+      configId
+    });
+  }
+
+  // When user changes a value, update store if mobile
+  function updateSidebarState(partial: Partial<typeof $sidebarMobileState>) {
+    if (isMobile) {
+      sidebarMobileState.update(state => ({ ...state, ...partial }));
+    }
+  }
 
   // Find the config that covers the yearly energy consumption.
   let yearlyKwhEnergyConsumption: number;
   $: yearlyKwhEnergyConsumption = (monthlyAverageEnergyBillInput / energyCostPerKwhInput) * 12;
 
-  let configId: number | undefined;
   $: if (configId === undefined && buildingInsights) {
     const defaultPanelCapacity = buildingInsights.solarPotential.panelCapacityWatts;
     const panelCapacityRatio = panelCapacityWattsInput / defaultPanelCapacity;
@@ -78,6 +113,9 @@
       {geometryLibrary}
       {location}
       {map}
+      on:showPanelsChange={e => updateSidebarState({ showPanels: e.detail })}
+      on:panelCapacityWattsInputChange={e => updateSidebarState({ panelCapacityWattsInput: e.detail })}
+      on:configIdChange={e => updateSidebarState({ configId: e.detail })}
     />
   {/if}
 
@@ -90,6 +128,7 @@
       {buildingInsights}
       {geometryLibrary}
       {map}
+      on:showPanelsChange={e => updateSidebarState({ showPanels: e.detail })}
     />
 
     <md-divider inset />
@@ -102,6 +141,11 @@
       bind:dcToAcDerateInput
       solarPanelConfigs={buildingInsights.solarPotential.solarPanelConfigs}
       defaultPanelCapacityWatts={buildingInsights.solarPotential.panelCapacityWatts}
+      on:monthlyAverageEnergyBillInputChange={e => updateSidebarState({ monthlyAverageEnergyBillInput: e.detail })}
+      on:energyCostPerKwhInputChange={e => updateSidebarState({ energyCostPerKwhInput: e.detail })}
+      on:panelCapacityWattsInputChange={e => updateSidebarState({ panelCapacityWattsInput: e.detail })}
+      on:dcToAcDerateInputChange={e => updateSidebarState({ dcToAcDerateInput: e.detail })}
+      on:configIdChange={e => updateSidebarState({ configId: e.detail })}
     />
   {/if}
 </div>

@@ -35,6 +35,8 @@
   import Show from '../components/Show.svelte';
   import SummaryCard from '../components/SummaryCard.svelte';
   import type { MdSlider } from '@material/web/slider/slider';
+  import { overlayState } from './overlayState';
+  import { get } from 'svelte/store';
 
   export let expandedSection: string;
   export let showPanels = true;
@@ -75,15 +77,22 @@
   let dataLayersResponse: DataLayersResponse | undefined;
   let requestError: RequestError | undefined;
   let apiResponseDialog: MdDialog;
-  let layerId: LayerId | 'none' = 'monthlyFlux';
   let layer: Layer | undefined;
   let imageryQuality: 'HIGH' | 'MEDIUM' | 'LOW';
 
-  let playAnimation = true;
-  let tick = 0;
-  let month = 0;
-  let day = 14;
-  let hour = 0;
+  // Add computed variables for safe template usage
+  let layerIdString = '';
+  $: layerIdString = String(layerId);
+  $: dataLayerOptionsName = dataLayerOptions[layerId as keyof typeof dataLayerOptions];
+  const dataLayerOptionsString: Record<string, string> = dataLayerOptions;
+
+  // Use store values
+  $: ({ layerId, month, day, hour, playAnimation, tick } = $overlayState);
+
+  // Update store on UI changes
+  function setOverlayState(partial: Partial<import('./overlayState').OverlayState>) {
+    overlayState.update(state => ({ ...state, ...partial }));
+  }
 
   let overlays: google.maps.GroundOverlay[] = [];
   let showRoofOnly = false;
@@ -97,10 +106,8 @@
       showRoofOnly = ['annualFlux', 'monthlyFlux', 'hourlyShade'].includes(layerId);
       map.setMapTypeId(layerId == 'rgb' ? 'roadmap' : 'satellite');
       overlays.map((overlay) => overlay.setMap(null));
-      month = layerId == 'hourlyShade' ? 3 : 0;
-      day = 14;
-      hour = 5;
-      playAnimation = ['monthlyFlux', 'hourlyShade'].includes(layerId);
+      setOverlayState({ month: layerId == 'hourlyShade' ? 3 : 0, day: 14, hour: 5 });
+      setOverlayState({ playAnimation: ['monthlyFlux', 'hourlyShade'].includes(layerId) });
     }
     if (layerId == 'none') {
       return;
@@ -159,32 +166,30 @@
     const target = event.target as MdSlider;
     if (layer?.id == 'monthlyFlux') {
       if (target.valueStart != month) {
-        month = target.valueStart ?? 0;
+        setOverlayState({ month: target.valueStart ?? 0, tick: target.valueStart ?? 0 });
       } else if (target.valueEnd != month) {
-        month = target.valueEnd ?? 0;
+        setOverlayState({ month: target.valueEnd ?? 0, tick: target.valueEnd ?? 0 });
       }
-      tick = month;
     } else if (layer?.id == 'hourlyShade') {
       if (target.valueStart != hour) {
-        hour = target.valueStart ?? 0;
+        setOverlayState({ hour: target.valueStart ?? 0, tick: target.valueStart ?? 0 });
       } else if (target.valueEnd != hour) {
-        hour = target.valueEnd ?? 0;
+        setOverlayState({ hour: target.valueEnd ?? 0, tick: target.valueEnd ?? 0 });
       }
-      tick = hour;
     }
   }
 
   $: if (layer?.id == 'monthlyFlux') {
     if (playAnimation) {
-      month = tick % 12;
+      setOverlayState({ month: tick % 12, tick: tick });
     } else {
-      tick = month;
+      setOverlayState({ tick: month });
     }
   } else if (layer?.id == 'hourlyShade') {
     if (playAnimation) {
-      hour = tick % 24;
+      setOverlayState({ hour: tick % 24, tick: tick });
     } else {
-      tick = hour;
+      setOverlayState({ tick: hour });
     }
   }
 
@@ -195,11 +200,13 @@
       isMobile = window.innerWidth <= 768;
     });
     showDataLayer(true);
-
-    setInterval(() => {
-      tick++;
-    }, 1000);
   });
+
+  function handleLayerIdChange(val: string) {
+    setOverlayState({ layerId: val as LayerId | 'none' });
+    layer = undefined;
+    showDataLayer();
+  }
 </script>
 
 <style>
@@ -265,7 +272,7 @@
     </Expandable>
   </div>
 {:else}
-  <Expandable bind:section={expandedSection} {icon} {title} subtitle={dataLayerOptions[layerId]}>
+  <Expandable bind:section={expandedSection} {icon} {title} subtitle={dataLayerOptionsName}>
     {#if !isMobile && layer && (layer.id == 'monthlyFlux' || layer.id == 'hourlyShade')}
       <div class="w-full flex flex-col items-center mb-2 month-changer-top">
         <div class="surface on-surface-text pr-4 text-center label-large rounded-full shadow-md w-full flex items-center justify-between">
@@ -318,12 +325,9 @@
       </span>
 
       <Dropdown
-        bind:value={layerId}
-        options={dataLayerOptions}
-        onChange={async () => {
-          layer = undefined;
-          showDataLayer();
-        }}
+        bind:value={layerIdString}
+        options={dataLayerOptionsString}
+        onChange={handleLayerIdChange}
       />
 
       {#if layerId == 'none'}
@@ -385,7 +389,7 @@
 <div class="absolute top-0 left-0 w-72">
   {#if expandedSection == title && layer}
     <div class="m-2">
-      <SummaryCard {icon} {title} rows={[{ name: dataLayerOptions[layerId], value: '' }]}>
+      <SummaryCard {icon} {title} rows={[{ name: dataLayerOptionsName, value: '' }]}>
         <div class="flex flex-col space-y-4">
           <p class="outline-text">
             {#if layerId == 'mask'}
