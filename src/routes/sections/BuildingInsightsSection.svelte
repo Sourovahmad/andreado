@@ -34,12 +34,15 @@
   import { showNumber } from '../utils';
   import NumberInput from '../components/InputNumber.svelte';
   import Gauge from '../components/Gauge.svelte';
+  import { onDestroy } from 'svelte';
 
   export let expandedSection: string;
   export let buildingInsights: BuildingInsightsResponse | undefined;
   export let configId: number | undefined;
   export let panelCapacityWatts: number;
   export let showPanels: boolean;
+  export let manualConfigOverride: boolean;
+  export let resetToAutoConfig: () => void;
 
   export let googleMapsApiKey: string;
   export let geometryLibrary: google.maps.GeometryLibrary;
@@ -52,6 +55,10 @@
   let requestSent = false;
   let requestError: RequestError | undefined;
   let apiResponseDialog: MdDialog;
+  
+  // Keep track of the last requested location to prevent duplicate requests
+  let lastRequestedLocation: google.maps.LatLng | undefined;
+  let locationChangeTimeout: number | undefined;
 
   let panelConfig: SolarPanelConfig | undefined;
   $: if (buildingInsights && configId !== undefined) {
@@ -69,27 +76,62 @@
     panelCapacityRatio = panelCapacityWatts / defaultPanelCapacity;
   }
 
-  export async function showSolarPotential(location: google.maps.LatLng) {
-    if (requestSent) {
+  // Helper function to compare locations with tolerance for floating point precision
+  function locationsEqual(loc1: google.maps.LatLng, loc2: google.maps.LatLng, tolerance = 0.00001): boolean {
+    return Math.abs(loc1.lat() - loc2.lat()) < tolerance && 
+           Math.abs(loc1.lng() - loc2.lng()) < tolerance;
+  }
+
+  export async function showSolarPotential(location: google.maps.LatLng, forceRetry = false) {
+    // If we already have building insights for this location and no error, don't refetch unless forced
+    if (requestSent || (!forceRetry && lastRequestedLocation && 
+        locationsEqual(lastRequestedLocation, location) && 
+        buildingInsights && !requestError)) {
+      console.log('Using existing building insights, skipping API call');
+      
+      // Still create solar panels if they don't exist but we have building insights
+      if (buildingInsights && solarPanels.length === 0) {
+        createSolarPanels();
+      }
       return;
     }
 
-    console.log('showSolarPotential');
-    buildingInsights = undefined;
+    console.log('showSolarPotential', { forceRetry, lat: location.lat(), lng: location.lng() });
+    
+    // Only reset buildingInsights if we're making a new request
+    if (!buildingInsights || forceRetry) {
+      buildingInsights = undefined;
+    }
     requestError = undefined;
+    lastRequestedLocation = location;
 
-    solarPanels.map((panel) => panel.setMap(null));
+    // Clear existing panels
+    solarPanels.forEach((panel) => panel.setMap(null));
     solarPanels = [];
 
     requestSent = true;
     try {
       buildingInsights = await findClosestBuilding(location, googleMapsApiKey);
+      console.log('Successfully fetched building insights');
     } catch (e) {
+      console.error('Error fetching building insights:', e);
       requestError = e as RequestError;
-      return;
+      // Don't return early - let finally block execute
     } finally {
       requestSent = false;
     }
+
+    // Only proceed if we have building insights and no error
+    if (!buildingInsights || requestError) {
+      return;
+    }
+
+    createSolarPanels();
+  }
+
+  // Separate function to create solar panels from building insights
+  function createSolarPanels() {
+    if (!buildingInsights) return;
 
     // Create the solar panels on the map.
     const solarPotential = buildingInsights.solarPotential;
@@ -125,7 +167,35 @@
     });
   }
 
-  $: showSolarPotential(location);
+  // Watch for buildingInsights changes and create panels if needed
+  $: if (buildingInsights && solarPanels.length === 0) {
+    createSolarPanels();
+  }
+
+  // Function to handle retry with proper flag
+  function handleRetry() {
+    console.log('Retry button clicked');
+    if (lastRequestedLocation) {
+      showSolarPotential(lastRequestedLocation, true);
+    }
+  }
+
+  // Debounced reactive statement for location changes to prevent excessive API calls
+  $: if (location) {
+    if (locationChangeTimeout) {
+      clearTimeout(locationChangeTimeout);
+    }
+    locationChangeTimeout = setTimeout(() => {
+      showSolarPotential(location);
+    }, 300) as any; // 300ms debounce
+  }
+
+  // Cleanup timeout on component destroy
+  onDestroy(() => {
+    if (locationChangeTimeout) {
+      clearTimeout(locationChangeTimeout);
+    }
+  });
 </script>
 
 <style>
@@ -173,7 +243,7 @@
           <p class="body-medium"><code>{requestError.error.status}</code></p>
           <p class="label-medium">{requestError.error.message}</p>
         </div>
-        <md-filled-button role={undefined} on:click={() => showSolarPotential(location)}>
+        <md-filled-button role={undefined} on:click={handleRetry}>
           Retry
           <md-icon slot="icon">refresh</md-icon>
         </md-filled-button>
@@ -198,11 +268,30 @@
       <span class="outline-text label-medium">
         <b>{title}</b> provides data on the location, dimensions & solar potential of a building.
       </span>
+      
+      <!-- Show data freshness indicator -->
+      {#if buildingInsights}
+        <div class="flex items-center space-x-1 px-2 py-1 bg-green-50 rounded-md">
+          <md-icon class="text-green-600 text-sm">check_circle</md-icon>
+          <span class="text-green-700 label-small">Data loaded successfully</span>
+        </div>
+      {/if}
 
       <InputPanelsCount
         bind:configId
         solarPanelConfigs={buildingInsights.solarPotential.solarPanelConfigs}
       />
+      
+      {#if manualConfigOverride}
+        <div class="flex items-center space-x-2 px-2 py-1 bg-blue-50 rounded-md">
+          <md-icon class="text-blue-600">settings</md-icon>
+          <span class="text-blue-700 label-small flex-grow">Manual panel count selected</span>
+          <md-text-button role={undefined} on:click={resetToAutoConfig}>
+            Auto
+            <md-icon slot="icon">refresh</md-icon>
+          </md-text-button>
+        </div>
+      {/if}
       <NumberInput
         bind:value={panelCapacityWatts}
         icon="bolt"

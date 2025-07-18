@@ -25,6 +25,7 @@
   import { onMount } from 'svelte';
   import { sidebarMobileState } from './sidebarMobileState';
   import { get } from 'svelte/store';
+  import { writable } from 'svelte/store';
 
   export let location: google.maps.LatLng;
   export let map: google.maps.Map;
@@ -32,7 +33,39 @@
   export let googleMapsApiKey: string;
   export let expandedSection: string;
 
+  // Create a store for cached building insights to persist across popup open/close
+  const buildingInsightsCache = writable<{
+    location?: { lat: number; lng: number };
+    data?: BuildingInsightsResponse;
+    timestamp?: number;
+  }>({});
+
   let buildingInsights: BuildingInsightsResponse | undefined;
+  
+  // Check if we have cached data for this location
+  $: if (location) {
+    const cache = get(buildingInsightsCache);
+    const currentLoc = { lat: location.lat(), lng: location.lng() };
+    
+    // Check if we have fresh cached data for this location (within 5 minutes)
+    if (cache.location && cache.data && cache.timestamp && 
+        Math.abs(cache.location.lat - currentLoc.lat) < 0.00001 &&
+        Math.abs(cache.location.lng - currentLoc.lng) < 0.00001 &&
+        Date.now() - cache.timestamp < 5 * 60 * 1000) {
+      
+      console.log('Using cached building insights');
+      buildingInsights = cache.data;
+    }
+  }
+
+  // Update cache when buildingInsights changes
+  $: if (buildingInsights && location) {
+    buildingInsightsCache.set({
+      location: { lat: location.lat(), lng: location.lng() },
+      data: buildingInsights,
+      timestamp: Date.now()
+    });
+  }
 
   // State (local, for desktop)
   let showPanels = true;
@@ -41,33 +74,75 @@
   let energyCostPerKwhInput = 0.3;
   let dcToAcDerateInput = 0.85;
   let configId: number | undefined;
+  let manualConfigOverride = false; // Track if user manually changed panel count
 
-  // For expandedSection, prefer prop, but fallback to store/local
-  let expandedSectionValue: string;
-  $: expandedSectionValue = isMobile ? $sidebarMobileState.expandedSection : expandedSection;
+  let isMobile = false;
 
-  // Sync state with store on mobile
+  // Initialize mobile detection and load persisted state
+  onMount(() => {
+    isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    
+    const handleResize = () => {
+      isMobile = window.innerWidth <= 768;
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    // Load persisted state on mount
+    if (isMobile) {
+      const mobileState = get(sidebarMobileState);
+      showPanels = mobileState.showPanels;
+      monthlyAverageEnergyBillInput = mobileState.monthlyAverageEnergyBillInput;
+      panelCapacityWattsInput = mobileState.panelCapacityWattsInput;
+      energyCostPerKwhInput = mobileState.energyCostPerKwhInput;
+      dcToAcDerateInput = mobileState.dcToAcDerateInput;
+      configId = mobileState.configId;
+      manualConfigOverride = mobileState.manualConfigOverride;
+      console.log('Loaded persisted mobile state:', mobileState);
+    }
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  });
+
+  // Sync state with mobile store when switching to mobile
   $: if (isMobile) {
-    // Read from store
-    ({
-      showPanels,
-      monthlyAverageEnergyBillInput,
-      panelCapacityWattsInput,
-      energyCostPerKwhInput,
-      dcToAcDerateInput,
-      configId
-    } = $sidebarMobileState);
-  } else {
-    // Write to store if switching to mobile
-    sidebarMobileState.set({
-      showPanels,
-      monthlyAverageEnergyBillInput,
-      panelCapacityWattsInput,
-      energyCostPerKwhInput,
-      dcToAcDerateInput,
-      expandedSection,
-      configId
-    });
+    const currentMobileState = get(sidebarMobileState);
+    
+    // Only update if values are different to prevent loops
+    if (currentMobileState.showPanels !== showPanels ||
+        currentMobileState.monthlyAverageEnergyBillInput !== monthlyAverageEnergyBillInput ||
+        currentMobileState.panelCapacityWattsInput !== panelCapacityWattsInput ||
+        currentMobileState.energyCostPerKwhInput !== energyCostPerKwhInput ||
+        currentMobileState.dcToAcDerateInput !== dcToAcDerateInput ||
+        currentMobileState.configId !== configId ||
+        currentMobileState.expandedSection !== expandedSection ||
+        currentMobileState.manualConfigOverride !== manualConfigOverride) {
+      
+      sidebarMobileState.set({
+        showPanels,
+        monthlyAverageEnergyBillInput,
+        panelCapacityWattsInput,
+        energyCostPerKwhInput,
+        dcToAcDerateInput,
+        expandedSection,
+        configId,
+        manualConfigOverride
+      });
+    }
+  }
+
+  // Read from mobile store when on mobile
+  $: if (isMobile) {
+    const mobileState = $sidebarMobileState;
+    showPanels = mobileState.showPanels;
+    monthlyAverageEnergyBillInput = mobileState.monthlyAverageEnergyBillInput;
+    panelCapacityWattsInput = mobileState.panelCapacityWattsInput;
+    energyCostPerKwhInput = mobileState.energyCostPerKwhInput;
+    dcToAcDerateInput = mobileState.dcToAcDerateInput;
+    configId = mobileState.configId;
+    manualConfigOverride = mobileState.manualConfigOverride;
   }
 
   // When user changes a value, update store if mobile
@@ -77,11 +152,45 @@
     }
   }
 
+  // Function to handle manual configId changes
+  function handleConfigIdChange(newConfigId: number) {
+    configId = newConfigId;
+    manualConfigOverride = true;
+    
+    if (isMobile) {
+      updateSidebarState({ configId, manualConfigOverride });
+    }
+  }
+
+  // Function to reset to automatic calculation
+  function resetToAutoConfig() {
+    manualConfigOverride = false;
+    if (isMobile) {
+      updateSidebarState({ manualConfigOverride });
+    }
+    // Trigger recalculation
+    if (buildingInsights) {
+      const defaultPanelCapacity = buildingInsights.solarPotential.panelCapacityWatts;
+      const panelCapacityRatio = panelCapacityWattsInput / defaultPanelCapacity;
+      configId = findSolarConfig(
+        buildingInsights.solarPotential.solarPanelConfigs,
+        yearlyKwhEnergyConsumption,
+        panelCapacityRatio,
+        dcToAcDerateInput,
+      );
+      
+      if (isMobile) {
+        updateSidebarState({ configId });
+      }
+    }
+  }
+
   // Find the config that covers the yearly energy consumption.
   let yearlyKwhEnergyConsumption: number;
   $: yearlyKwhEnergyConsumption = (monthlyAverageEnergyBillInput / energyCostPerKwhInput) * 12;
 
-  $: if (configId === undefined && buildingInsights) {
+  // Only auto-calculate configId if user hasn't manually overridden it
+  $: if (!manualConfigOverride && configId === undefined && buildingInsights) {
     const defaultPanelCapacity = buildingInsights.solarPotential.panelCapacityWatts;
     const panelCapacityRatio = panelCapacityWattsInput / defaultPanelCapacity;
     configId = findSolarConfig(
@@ -90,15 +199,12 @@
       panelCapacityRatio,
       dcToAcDerateInput,
     );
+    
+    // Update mobile store if on mobile
+    if (isMobile) {
+      updateSidebarState({ configId });
+    }
   }
-
-  let isMobile = false;
-  onMount(() => {
-    isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
-    window.addEventListener('resize', () => {
-      isMobile = window.innerWidth <= 768;
-    });
-  });
 </script>
 
 <div class="flex flex-col rounded-md shadow-md">
@@ -106,16 +212,18 @@
     <BuildingInsightsSection
       bind:expandedSection
       bind:buildingInsights
-      bind:configId
+      configId={configId}
       bind:showPanels
       bind:panelCapacityWatts={panelCapacityWattsInput}
       {googleMapsApiKey}
       {geometryLibrary}
       {location}
       {map}
+      {manualConfigOverride}
+      {resetToAutoConfig}
       on:showPanelsChange={e => updateSidebarState({ showPanels: e.detail })}
       on:panelCapacityWattsInputChange={e => updateSidebarState({ panelCapacityWattsInput: e.detail })}
-      on:configIdChange={e => updateSidebarState({ configId: e.detail })}
+      on:configIdChange={e => handleConfigIdChange(e.detail)}
     />
   {/if}
 
@@ -134,18 +242,20 @@
     <md-divider inset />
     <SolarPotentialSection
       bind:expandedSection
-      bind:configId
+      configId={configId}
       bind:monthlyAverageEnergyBillInput
       bind:energyCostPerKwhInput
       bind:panelCapacityWattsInput
       bind:dcToAcDerateInput
       solarPanelConfigs={buildingInsights.solarPotential.solarPanelConfigs}
       defaultPanelCapacityWatts={buildingInsights.solarPotential.panelCapacityWatts}
+      {manualConfigOverride}
+      {resetToAutoConfig}
       on:monthlyAverageEnergyBillInputChange={e => updateSidebarState({ monthlyAverageEnergyBillInput: e.detail })}
       on:energyCostPerKwhInputChange={e => updateSidebarState({ energyCostPerKwhInput: e.detail })}
       on:panelCapacityWattsInputChange={e => updateSidebarState({ panelCapacityWattsInput: e.detail })}
       on:dcToAcDerateInputChange={e => updateSidebarState({ dcToAcDerateInput: e.detail })}
-      on:configIdChange={e => updateSidebarState({ configId: e.detail })}
+      on:configIdChange={e => handleConfigIdChange(e.detail)}
     />
   {/if}
 </div>

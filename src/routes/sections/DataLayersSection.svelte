@@ -96,6 +96,8 @@
 
   let overlays: google.maps.GroundOverlay[] = [];
   let showRoofOnly = false;
+  let isLoading = false;
+  
   async function showDataLayer(reset = false) {
     if (reset) {
       dataLayersResponse = undefined;
@@ -114,45 +116,79 @@
     }
 
     if (!layer) {
-      const center = buildingInsights.center;
-      const ne = buildingInsights.boundingBox.ne;
-      const sw = buildingInsights.boundingBox.sw;
-      const diameter = geometryLibrary.spherical.computeDistanceBetween(
-        new google.maps.LatLng(ne.latitude, ne.longitude),
-        new google.maps.LatLng(sw.latitude, sw.longitude),
-      );
-      const radius = Math.ceil(diameter / 2);
+      isLoading = true;
       try {
-        dataLayersResponse = await getDataLayerUrls(center, radius, googleMapsApiKey);
-      } catch (e) {
-        requestError = e as RequestError;
-        return;
-      }
+        const center = buildingInsights.center;
+        const ne = buildingInsights.boundingBox.ne;
+        const sw = buildingInsights.boundingBox.sw;
+        const diameter = geometryLibrary.spherical.computeDistanceBetween(
+          new google.maps.LatLng(ne.latitude, ne.longitude),
+          new google.maps.LatLng(sw.latitude, sw.longitude),
+        );
+        const radius = Math.ceil(diameter / 2);
+        
+        try {
+          dataLayersResponse = await getDataLayerUrls(center, radius, googleMapsApiKey);
+        } catch (e) {
+          console.error('Error fetching data layer URLs:', e);
+          requestError = e as RequestError;
+          return;
+        } finally {
+          isLoading = false;
+        }
 
-      imageryQuality = dataLayersResponse.imageryQuality;
+        imageryQuality = dataLayersResponse.imageryQuality;
 
-      try {
-        layer = await getLayer(layerId, dataLayersResponse, googleMapsApiKey);
+        isLoading = true;
+        try {
+          layer = await getLayer(layerId as LayerId, dataLayersResponse, googleMapsApiKey);
+        } catch (e) {
+          console.error('Error creating layer:', e);
+          requestError = e as RequestError;
+          return;
+        } finally {
+          isLoading = false;
+        }
       } catch (e) {
-        requestError = e as RequestError;
+        console.error('Unexpected error in showDataLayer:', e);
+        requestError = {
+          error: {
+            code: 500,
+            message: 'An unexpected error occurred',
+            status: 'INTERNAL_ERROR'
+          }
+        };
         return;
+      } finally {
+        isLoading = false;
       }
     }
 
-    const bounds = layer.bounds;
-    console.log('Render layer:', {
-      layerId: layer.id,
-      showRoofOnly: showRoofOnly,
-      month: month,
-      day: day,
-    });
-    overlays.map((overlay) => overlay.setMap(null));
-    overlays = layer
-      .render(showRoofOnly, month, day)
-      .map((canvas) => new google.maps.GroundOverlay(canvas.toDataURL(), bounds));
+    try {
+      const bounds = layer.bounds;
+      console.log('Render layer:', {
+        layerId: layer.id,
+        showRoofOnly: showRoofOnly,
+        month: month,
+        day: day,
+      });
+      overlays.map((overlay) => overlay.setMap(null));
+      overlays = layer
+        .render(showRoofOnly, month, day)
+        .map((canvas) => new google.maps.GroundOverlay(canvas.toDataURL(), bounds));
 
-    if (!['monthlyFlux', 'hourlyShade'].includes(layer.id)) {
-      overlays[0].setMap(map);
+      if (!['monthlyFlux', 'hourlyShade'].includes(layer.id)) {
+        overlays[0].setMap(map);
+      }
+    } catch (e) {
+      console.error('Error rendering layer:', e);
+      requestError = {
+        error: {
+          code: 500,
+          message: 'Failed to render data layer',
+          status: 'RENDER_ERROR'
+        }
+      };
     }
   }
 
@@ -332,8 +368,11 @@
 
       {#if layerId == 'none'}
         <div />
-      {:else if !layer}
+      {:else if !layer || isLoading}
         <md-linear-progress four-color indeterminate />
+        {#if isLoading}
+          <span class="outline-text label-small">Loading data layer...</span>
+        {/if}
       {:else}
         {#if layer.id == 'hourlyShade'}
           <Calendar bind:month bind:day onChange={async () => showDataLayer()} />

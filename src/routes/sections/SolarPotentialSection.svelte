@@ -42,6 +42,8 @@
   export let dcToAcDerateInput: number;
   export let solarPanelConfigs: SolarPanelConfig[];
   export let defaultPanelCapacityWatts: number;
+  export let manualConfigOverride: boolean;
+  export let resetToAutoConfig: () => void;
 
   const icon = 'payments';
   const title = 'Solar Potential analysis';
@@ -191,12 +193,16 @@
     monthlyKwhEnergyConsumption = monthlyAverageEnergyBillInput / energyCostPerKwhInput;
     yearlyKwhEnergyConsumption = monthlyKwhEnergyConsumption * 12;
     panelCapacityRatio = panelCapacityWattsInput / defaultPanelCapacityWatts;
-    configId = findSolarConfig(
-      solarPanelConfigs,
-      yearlyKwhEnergyConsumption,
-      panelCapacityRatio,
-      dcToAcDerateInput,
-    );
+    
+    // Only recalculate configId if user hasn't manually overridden it
+    if (!manualConfigOverride) {
+      configId = findSolarConfig(
+        solarPanelConfigs,
+        yearlyKwhEnergyConsumption,
+        panelCapacityRatio,
+        dcToAcDerateInput,
+      );
+    }
   }
 </script>
 
@@ -285,6 +291,17 @@
         <md-icon>sync</md-icon>
       </md-icon-button>
     </div>
+
+    {#if manualConfigOverride}
+      <div class="flex items-center space-x-2 px-2 py-1 bg-blue-50 rounded-md">
+        <md-icon class="text-blue-600">settings</md-icon>
+        <span class="text-blue-700 label-small flex-grow">Manual panel count selected</span>
+        <md-text-button role={undefined} on:click={resetToAutoConfig}>
+          Auto
+          <md-icon slot="icon">refresh</md-icon>
+        </md-text-button>
+      </div>
+    {/if}
 
     <InputMoney
       bind:value={energyCostPerKwhInput}

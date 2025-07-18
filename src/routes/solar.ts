@@ -151,17 +151,21 @@ export async function findClosestBuilding(
   };
   console.log('GET buildingInsights\n', args);
   const params = new URLSearchParams({ ...args, key: apiKey });
-  // https://developers.google.com/maps/documentation/solar/reference/rest/v1/buildingInsights/findClosest
-  return fetch(`https://solar.googleapis.com/v1/buildingInsights:findClosest?${params}`).then(
-    async (response) => {
+  
+  return rateLimiter.execute(() => 
+    withRetry(async () => {
+      // https://developers.google.com/maps/documentation/solar/reference/rest/v1/buildingInsights/findClosest
+      const response = await fetch(`https://solar.googleapis.com/v1/buildingInsights:findClosest?${params}`);
       const content = await response.json();
-      if (response.status != 200) {
+      
+      if (response.status !== 200) {
         console.error('findClosestBuilding\n', content);
         throw content;
       }
+      
       console.log('buildingInsightsResponse', content);
       return content;
-    },
+    })
   );
 }
 // [END solar_api_building_insights]
@@ -194,17 +198,21 @@ export async function getDataLayerUrls(
   };
   console.log('GET dataLayers\n', args);
   const params = new URLSearchParams({ ...args, key: apiKey });
-  // https://developers.google.com/maps/documentation/solar/reference/rest/v1/dataLayers/get
-  return fetch(`https://solar.googleapis.com/v1/dataLayers:get?${params}`).then(
-    async (response) => {
+  
+  return rateLimiter.execute(() =>
+    withRetry(async () => {
+      // https://developers.google.com/maps/documentation/solar/reference/rest/v1/dataLayers/get
+      const response = await fetch(`https://solar.googleapis.com/v1/dataLayers:get?${params}`);
       const content = await response.json();
-      if (response.status != 200) {
+      
+      if (response.status !== 200) {
         console.error('getDataLayerUrls\n', content);
         throw content;
       }
+      
       console.log('dataLayersResponse', content);
       return content;
-    },
+    })
   );
 }
 // [END solar_api_data_layers]
@@ -235,55 +243,51 @@ import proj4 from 'proj4';
 export async function downloadGeoTIFF(url: string, apiKey: string): Promise<GeoTiff> {
   console.log(`Downloading data layer: ${url}`);
 
-  // Include your Google Cloud API key in the Data Layers URL.
-  const solarUrl = url.includes('solar.googleapis.com') ? url + `&key=${apiKey}` : url;
-  const response = await fetch(solarUrl);
-  if (response.status != 200) {
-    const error = await response.json();
-    console.error(`downloadGeoTIFF failed: ${url}\n`, error);
-    throw error;
-  }
+  return rateLimiter.execute(() =>
+    withRetry(async () => {
+      // Include your Google Cloud API key in the Data Layers URL.
+      const solarUrl = url.includes('solar.googleapis.com') ? url + `&key=${apiKey}` : url;
+      const response = await fetch(solarUrl);
+      
+      if (response.status !== 200) {
+        const error = await response.json();
+        console.error(`downloadGeoTIFF failed: ${url}\n`, error);
+        throw error;
+      }
 
-  // Get the GeoTIFF rasters, which are the pixel values for each band.
-  const arrayBuffer = await response.arrayBuffer();
-  const tiff = await geotiff.fromArrayBuffer(arrayBuffer);
-  const image = await tiff.getImage();
-  const rasters = await image.readRasters();
+      // Get the GeoTIFF rasters, which are the pixel values for each band.
+      const arrayBuffer = await response.arrayBuffer();
+      const tiff = await geotiff.fromArrayBuffer(arrayBuffer);
+      const image = await tiff.getImage();
+      const rasters = await image.readRasters();
 
-  // Reproject the bounding box into lat/lon coordinates.
-  const geoKeys = image.getGeoKeys();
-  const projObj = geokeysToProj4.toProj4(geoKeys);
-  const projection = proj4(projObj.proj4, 'WGS84');
-  const box = image.getBoundingBox();
-  const sw = projection.forward({
-    x: box[0] * projObj.coordinatesConversionParameters.x,
-    y: box[1] * projObj.coordinatesConversionParameters.y,
-  });
-  const ne = projection.forward({
-    x: box[2] * projObj.coordinatesConversionParameters.x,
-    y: box[3] * projObj.coordinatesConversionParameters.y,
-  });
+      // Reproject the bounding box into lat/lon coordinates.
+      const geoKeys = image.getGeoKeys();
+      const projObj = geokeysToProj4.toProj4(geoKeys);
+      const projection = proj4(projObj.proj4, 'WGS84');
+      const box = image.getBoundingBox();
+      const sw = projection.forward({
+        x: box[0] * projObj.coordinatesConversionParameters.x,
+        y: box[1] * projObj.coordinatesConversionParameters.y,
+      });
+      const ne = projection.forward({
+        x: box[2] * projObj.coordinatesConversionParameters.x,
+        y: box[3] * projObj.coordinatesConversionParameters.y,
+      });
 
-  return {
-    // Width and height of the data layer image in pixels.
-    // Used to know the row and column since Javascript
-    // stores the values as flat arrays.
-    width: rasters.width,
-    height: rasters.height,
-    // Each raster reprents the pixel values of each band.
-    // We convert them from `geotiff.TypedArray`s into plain
-    // Javascript arrays to make them easier to process.
-    rasters: [...Array(rasters.length).keys()].map((i) =>
-      Array.from(rasters[i] as geotiff.TypedArray),
-    ),
-    // The bounding box as a lat/lon rectangle.
-    bounds: {
-      north: ne.y,
-      south: sw.y,
-      east: ne.x,
-      west: sw.x,
-    },
-  };
+      return {
+        width: image.getWidth(),
+        height: image.getHeight(),
+        rasters: [...Array(rasters.length).keys()].map((i) => Array.from(rasters[i] as any)),
+        bounds: {
+          north: ne.y,
+          south: sw.y,
+          east: ne.x,
+          west: sw.x,
+        },
+      };
+    })
+  );
 }
 // [END solar_api_download_geotiff]
 
@@ -294,3 +298,77 @@ export function showLatLng(point: LatLng) {
 export function showDate(date: Date) {
   return `${date.month}/${date.day}/${date.year}`;
 }
+
+// Utility function for exponential backoff retry
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      // If this is the last attempt or it's not a retryable error, throw
+      if (attempt === maxRetries || (error.error?.code !== 429 && error.error?.code !== 503)) {
+        throw error;
+      }
+      
+      // Calculate delay with exponential backoff and jitter
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+      console.log(`Rate limited (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${Math.round(delay)}ms...`);
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw new Error('Max retries exceeded');
+}
+
+// Rate limiting utility
+class RateLimiter {
+  private queue: Array<() => void> = [];
+  private processing = false;
+  private lastRequestTime = 0;
+  private minInterval = 100; // Minimum 100ms between requests
+
+  async execute<T>(operation: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.queue.push(async () => {
+        try {
+          const now = Date.now();
+          const timeSinceLastRequest = now - this.lastRequestTime;
+          
+          if (timeSinceLastRequest < this.minInterval) {
+            await new Promise(res => setTimeout(res, this.minInterval - timeSinceLastRequest));
+          }
+          
+          this.lastRequestTime = Date.now();
+          const result = await operation();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      
+      this.processQueue();
+    });
+  }
+
+  private async processQueue() {
+    if (this.processing || this.queue.length === 0) {
+      return;
+    }
+    
+    this.processing = true;
+    
+    while (this.queue.length > 0) {
+      const operation = this.queue.shift()!;
+      await operation();
+    }
+    
+    this.processing = false;
+  }
+}
+
+const rateLimiter = new RateLimiter();

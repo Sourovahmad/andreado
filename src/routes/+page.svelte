@@ -24,15 +24,25 @@
   import SearchBar from './components/SearchBar.svelte';
   import Sections from './sections/Sections.svelte';
   import { onDestroy } from 'svelte';
+  
   let isMobile = false;
   let showDrawer = false;
+  
   function handleResize() {
     isMobile = window.innerWidth <= 768;
   }
+  
+  let cleanupFunctions: (() => void)[] = [];
+  
   onMount(() => {
     handleResize();
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    cleanupFunctions.push(() => window.removeEventListener('resize', handleResize));
+  });
+  
+  onDestroy(() => {
+    cleanupFunctions.forEach(cleanup => cleanup());
+    cleanupFunctions = [];
   });
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const defaultPlace = {
@@ -113,24 +123,25 @@
     </div>
 
     <div bind:this={mapElement} class="absolute inset-0 w-full h-full z-10" />
+    
     <button class="fixed bottom-24 right-4 z-30 bg-white rounded-xl shadow-lg p-4 flex items-center justify-center" on:click={() => showDrawer = true} aria-label="Open menu">
       <svg width="28" height="28" fill="none" viewBox="0 0 24 24"><rect y="5" width="24" height="2" rx="1" fill="#222"/><rect y="11" width="24" height="2" rx="1" fill="#222"/><rect y="17" width="24" height="2" rx="1" fill="#222"/></svg>
     </button>
+    
+    <!-- Overlay backdrop -->
     {#if showDrawer}
       <div class="fixed inset-0 z-40 bg-black/30" on:click={() => showDrawer = false}></div>
-      <div class="fixed bottom-0 left-0 w-full z-50 bg-white rounded-t-2xl shadow-2xl p-4 max-h-[80vh] overflow-y-auto animate-slideup">
-        {#if location}
-          <Sections {location} {map} {geometryLibrary} {googleMapsApiKey}
-            bind:expandedSection
-            bind:month
-            bind:day
-            bind:hour
-            bind:layerId
-          />
-        {/if}
-        <span class="block pt-4 text-center outline-text label-small">© 2025 Klaryo. All rights reserved.</span>
-      </div>
     {/if}
+    
+    <!-- Drawer - now always rendered but hidden when closed -->
+    <div class="fixed bottom-0 left-0 w-full z-50 bg-white rounded-t-2xl shadow-2xl p-4 max-h-[80vh] overflow-y-auto transition-transform duration-300 {showDrawer ? 'translate-y-0' : 'translate-y-full'}">
+      {#if location}
+        <Sections {location} {map} {geometryLibrary} {googleMapsApiKey}
+          bind:expandedSection
+        />
+      {/if}
+      <span class="block pt-4 text-center outline-text label-small">© 2025 Klaryo. All rights reserved.</span>
+    </div>
   </div>
 {:else}
   <div class="flex flex-row h-full">
@@ -161,7 +172,7 @@
       </div> -->
 
         {#if location}
-          <Sections {location} {map} {geometryLibrary} {googleMapsApiKey} />
+          <Sections {location} {map} {geometryLibrary} {googleMapsApiKey} bind:expandedSection />
         {/if}
 
         <div class="grow" />
@@ -185,11 +196,8 @@
 {/if}
 
 <style>
-  @keyframes slideup {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
-  }
-  .animate-slideup {
-    animation: slideup 0.25s cubic-bezier(0.4,0,0.2,1);
+  /* Smooth transition for the mobile drawer */
+  .transition-transform {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 </style>
