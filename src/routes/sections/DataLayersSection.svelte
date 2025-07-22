@@ -308,7 +308,7 @@
     </Expandable>
   </div>
 {:else}
-  <Expandable bind:section={expandedSection} {icon} {title} subtitle={dataLayerOptionsName}>
+  <Expandable bind:section={expandedSection} {icon} {title} subtitle={dataLayerOptionsName} secondary={false}>
     {#if !isMobile && layer && (layer.id == 'monthlyFlux' || layer.id == 'hourlyShade')}
       <div class="w-full flex flex-col items-center mb-2 month-changer-top">
         <div class="surface on-surface-text pr-4 text-center label-large rounded-full shadow-md w-full flex items-center justify-between">
@@ -425,61 +425,117 @@
   </Expandable>
 {/if}
 
-<div class="absolute top-0 left-0 w-72">
-  {#if expandedSection == title && layer}
-    <div class="m-2">
-      <SummaryCard {icon} {title} rows={[{ name: dataLayerOptionsName, value: '' }]}>
-        <div class="flex flex-col space-y-4">
-          <p class="outline-text">
-            {#if layerId == 'mask'}
-              The building mask image: one bit per pixel saying whether that pixel is considered to
-              be part of a rooftop or not.
-            {:else if layerId == 'dsm'}
-              An image of the DSM (Digital Surface Model) of the region. Values are in meters above
-              EGM96 geoid (i.e., sea level). Invalid locations (where we don't have data) are stored
-              as -9999.
-            {:else if layerId == 'rgb'}
-              An image of RGB data (aerial photo) of the region.
-            {:else if layerId == 'annualFlux'}
-              The annual flux map (annual sunlight on roofs) of the region. Values are kWh/kW/year.
-              This is unmasked flux: flux is computed for every location, not just building
-              rooftops. Invalid locations are stored as -9999: locations outside our coverage area
-              will be invalid, and a few locations inside the coverage area, where we were unable to
-              calculate flux, will also be invalid.
-            {:else if layerId == 'monthlyFlux'}
-              The monthly flux map (sunlight on roofs, broken down by month) of the region. Values
-              are kWh/kW/year. The GeoTIFF imagery file pointed to by this URL will contain twelve
-              bands, corresponding to January...December, in order.
-            {:else if layerId == 'hourlyShade'}
-              Twelve URLs for hourly shade, corresponding to January...December, in order. Each
-              GeoTIFF imagery file will contain 24 bands, corresponding to the 24 hours of the day.
-              Each pixel is a 32 bit integer, corresponding to the (up to) 31 days of that month; a
-              1 bit means that the corresponding location is able to see the sun at that day, of
-              that hour, of that month. Invalid locations are stored as -9999 (since this is
-              negative, it has bit 31 set, and no valid value could have bit 31 set as that would
-              correspond to the 32nd day of the month).
-            {/if}
-          </p>
-
-          {#if layer.palette}
-            <div>
-              <div
-                class="h-2 outline rounded-sm"
-                style={`background: linear-gradient(to right, ${layer.palette.colors.map(
-                  (hex) => '#' + hex,
-                )})`}
-              />
-              <div class="flex justify-between pt-1 label-small">
-                <span>{layer.palette.min}</span>
-                <span>{layer.palette.max}</span>
+{#if isMobile}
+  <div class="w-full mt-4">
+    {#if expandedSection == title && layer}
+      <div class="m-2">
+        <SummaryCard {icon} {title} rows={[{ name: dataLayerOptionsName, value: '' }]}> 
+          <div class="flex flex-col space-y-4">
+            <p class="{layerId == 'monthlyFlux' ? 'primary-text' : 'outline-text'}">
+              {#if layerId == 'mask'}
+                The building mask image: one bit per pixel saying whether that pixel is considered to
+                be part of a rooftop or not.
+              {:else if layerId == 'dsm'}
+                An image of the DSM (Digital Surface Model) of the region. Values are in meters above
+                EGM96 geoid (i.e., sea level). Invalid locations (where we don't have data) are stored
+                as -9999.
+              {:else if layerId == 'rgb'}
+                An image of RGB data (aerial photo) of the region.
+              {:else if layerId == 'annualFlux'}
+                The annual flux map (annual sunlight on roofs) of the region. Values are kWh/kW/year.
+                This is unmasked flux: flux is computed for every location, not just building
+                rooftops. Invalid locations are stored as -9999: locations outside our coverage area
+                will be invalid, and a few locations inside the coverage area, where we were unable to
+                calculate flux, will also be invalid.
+              {:else if layerId == 'monthlyFlux'}
+                The monthly flux map (sunlight on roofs, broken down by month) of the region. Values
+                are kWh/kW/year. The GeoTIFF imagery file pointed to by this URL will contain twelve
+                bands, corresponding to January...December, in order.
+              {:else if layerId == 'hourlyShade'}
+                Twelve URLs for hourly shade, corresponding to January...December, in order. Each
+                GeoTIFF imagery file will contain 24 bands, corresponding to the 24 hours of the day.
+                Each pixel is a 32 bit integer, corresponding to the (up to) 31 days of that month; a
+                1 bit means that the corresponding location is able to see the sun at that day, of
+                that hour, of that month. Invalid locations are stored as -9999 (since this is
+                negative, it has bit 31 set, and no valid value could have bit 31 set as that would
+                correspond to the 32nd day of the month).
+              {/if}
+            </p>
+            {#if layer.palette}
+              <div>
+                <div
+                  class="h-2 outline rounded-sm"
+                  style={`background: linear-gradient(to right, ${layer.palette.colors.map(
+                    (hex) => '#' + hex,
+                  )})`}
+                />
+                <div class="flex justify-between pt-1 label-small">
+                  <span>{layer.palette.min}</span>
+                  <span>{layer.palette.max}</span>
+                </div>
               </div>
-            </div>
-          {/if}
-        </div>
-      </SummaryCard>
-    </div>
-  {/if}
-</div>
+            {/if}
+          </div>
+        </SummaryCard>
+      </div>
+    {/if}
+  </div>
+{:else}
+  <div class="absolute top-16 left-0 w-72">
+    {#if expandedSection == title && layer}
+      <div class="m-2">
+        <SummaryCard {icon} {title} rows={[{ name: dataLayerOptionsName, value: '' }]}> 
+          <div class="flex flex-col space-y-4">
+            <p class="{layerId == 'monthlyFlux' ? 'primary-text' : 'outline-text'}">
+              {#if layerId == 'mask'}
+                The building mask image: one bit per pixel saying whether that pixel is considered to
+                be part of a rooftop or not.
+              {:else if layerId == 'dsm'}
+                An image of the DSM (Digital Surface Model) of the region. Values are in meters above
+                EGM96 geoid (i.e., sea level). Invalid locations (where we don't have data) are stored
+                as -9999.
+              {:else if layerId == 'rgb'}
+                An image of RGB data (aerial photo) of the region.
+              {:else if layerId == 'annualFlux'}
+                The annual flux map (annual sunlight on roofs) of the region. Values are kWh/kW/year.
+                This is unmasked flux: flux is computed for every location, not just building
+                rooftops. Invalid locations are stored as -9999: locations outside our coverage area
+                will be invalid, and a few locations inside the coverage area, where we were unable to
+                calculate flux, will also be invalid.
+              {:else if layerId == 'monthlyFlux'}
+                The monthly flux map (sunlight on roofs, broken down by month) of the region. Values
+                are kWh/kW/year. The GeoTIFF imagery file pointed to by this URL will contain twelve
+                bands, corresponding to January...December, in order.
+              {:else if layerId == 'hourlyShade'}
+                Twelve URLs for hourly shade, corresponding to January...December, in order. Each
+                GeoTIFF imagery file will contain 24 bands, corresponding to the 24 hours of the day.
+                Each pixel is a 32 bit integer, corresponding to the (up to) 31 days of that month; a
+                1 bit means that the corresponding location is able to see the sun at that day, of
+                that hour, of that month. Invalid locations are stored as -9999 (since this is
+                negative, it has bit 31 set, and no valid value could have bit 31 set as that would
+                correspond to the 32nd day of the month).
+              {/if}
+            </p>
+            {#if layer.palette}
+              <div>
+                <div
+                  class="h-2 outline rounded-sm"
+                  style={`background: linear-gradient(to right, ${layer.palette.colors.map(
+                    (hex) => '#' + hex,
+                  )})`}
+                />
+                <div class="flex justify-between pt-1 label-small">
+                  <span>{layer.palette.min}</span>
+                  <span>{layer.palette.max}</span>
+                </div>
+              </div>
+            {/if}
+          </div>
+        </SummaryCard>
+      </div>
+    {/if}
+  </div>
+{/if}
 <div class="absolute bottom-6 left-0 w-full">
   <div class="md:mr-96 mr-80 grid place-items-center">
     {#if !isMobile && layer}

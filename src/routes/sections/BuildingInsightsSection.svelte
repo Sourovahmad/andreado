@@ -263,6 +263,7 @@
       (panelConfig.yearlyEnergyDcKwh * panelCapacityRatio) /
       1000
     ).toFixed(2)} MWh`}
+    secondary={false}
   >
     <div class="flex flex-col space-y-2 px-2">
       <span class="outline-text label-medium">
@@ -326,62 +327,63 @@
   </Expandable>
 
   {#if expandedSection == title}
-    <div class="absolute top-0 left-0 w-72">
-      <div class="flex flex-col space-y-2 m-2">
-        <SummaryCard
-          {icon}
-          {title}
-          rows={[
-            {
-              icon: 'wb_sunny',
-              name: 'Annual sunshine',
-              value: showNumber(buildingInsights.solarPotential.maxSunshineHoursPerYear),
-              units: 'hr',
-            },
-            {
-              icon: 'square_foot',
-              name: 'Roof area',
-              value: showNumber(buildingInsights.solarPotential.wholeRoofStats.areaMeters2),
-              units: 'm²',
-            },
-            {
-              icon: 'solar_power',
-              name: 'Max panel count',
-              value: showNumber(buildingInsights.solarPotential.solarPanels.length),
-              units: 'panels',
-            },
-            {
-              icon: 'co2',
-              name: 'CO₂ savings',
-              value: showNumber(buildingInsights.solarPotential.carbonOffsetFactorKgPerMwh),
-              units: 'Kg/MWh',
-            },
-          ]}
-        />
-
-        <div class="p-4 w-full surface on-surface-text rounded-lg shadow-md">
-          <div class="flex justify-around">
-            <Gauge
-              icon="solar_power"
-              title="Panels count"
-              label={showNumber(panelConfig.panelsCount)}
-              labelSuffix={`/ ${showNumber(solarPanels.length)}`}
-              max={solarPanels.length}
-              value={panelConfig.panelsCount}
-            />
-
-            <Gauge
-              icon="energy_savings_leaf"
-              title="Yearly energy"
-              label={showNumber((panelConfig?.yearlyEnergyDcKwh ?? 0) * panelCapacityRatio)}
-              labelSuffix="KWh"
-              max={buildingInsights.solarPotential.solarPanelConfigs.slice(-1)[0]
-                .yearlyEnergyDcKwh * panelCapacityRatio}
-              value={panelConfig.yearlyEnergyDcKwh * panelCapacityRatio}
-            />
-          </div>
+  <div class="md:absolute md:top-16 md:left-0 md:w-72 w-full">
+    <div class="flex flex-col space-y-2 m-2">
+      <SummaryCard
+        {icon}
+        {title}
+        rows={[
+          {
+            icon: 'wb_sunny',
+            name: 'Annual sunshine',
+            value: showNumber(buildingInsights.solarPotential.maxSunshineHoursPerYear),
+            units: 'hr',
+          },
+          {
+            icon: 'square_foot',
+            name: 'Roof area',
+            value: showNumber(buildingInsights.solarPotential.wholeRoofStats.areaMeters2),
+            units: 'm²',
+          },
+          {
+            icon: 'solar_power',
+            name: 'Max panel count',
+            value: showNumber(buildingInsights.solarPotential.solarPanels.length),
+            units: 'panels',
+          },
+          {
+            icon: 'co2',
+            name: 'CO₂ savings',
+            value: showNumber(buildingInsights.solarPotential.carbonOffsetFactorKgPerMwh),
+            units: 'Kg/MWh',
+          },
+        ]}
+      />
+  
+      <div class="p-4 w-full surface on-surface-text rounded-lg shadow-md">
+        <div class="flex flex-col md:flex-row md:justify-around space-y-4 md:space-y-0">
+          <Gauge
+            icon="solar_power"
+            title="Panels count"
+            label={showNumber(panelConfig.panelsCount)}
+            labelSuffix={`/ ${showNumber(solarPanels.length)}`}
+            max={solarPanels.length}
+            value={panelConfig.panelsCount}
+          />
+  
+          <Gauge
+            icon="energy_savings_leaf"
+            title="Yearly energy"
+            label={showNumber((panelConfig?.yearlyEnergyDcKwh ?? 0) * panelCapacityRatio)}
+            labelSuffix="KWh"
+            max={buildingInsights.solarPotential.solarPanelConfigs.slice(-1)[0]
+              .yearlyEnergyDcKwh * panelCapacityRatio}
+            value={panelConfig.yearlyEnergyDcKwh * panelCapacityRatio}
+          />
         </div>
       </div>
     </div>
+  </div>
+  
   {/if}
 {/if}

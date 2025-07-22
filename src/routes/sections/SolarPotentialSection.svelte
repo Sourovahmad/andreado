@@ -400,7 +400,7 @@
   </div>
 </Expandable>
 
-<div class="absolute top-0 left-0">
+<div class="absolute top-16 left-0">
   {#if expandedSection == title}
     <div class="flex flex-col space-y-2 m-2">
       <SummaryCard
