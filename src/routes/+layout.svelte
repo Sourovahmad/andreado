@@ -122,7 +122,8 @@
 
 <div class="header">
   <div class="header-logo">
-    <img src="/logo.png" alt="Klaryo logo" />
+    <img src="https://cloud-1de12d.b-cdn.net/media/original/5218e9d86fadce683a898ac6b0656ae1/klaryo-blackv2-1.png" alt="Klaryo logo" />
+    
   </div>
   <a class="header-link" href="https://www.klaryo.it" target="_blank" rel="noopener">Back to Klaryo</a>
 </div>

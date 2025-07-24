@@ -124,8 +124,9 @@
 
     <div bind:this={mapElement} class="absolute inset-0 w-full h-full z-10" />
     
-    <button class="fixed bottom-24 right-4 z-30 bg-white rounded-xl shadow-lg p-4 flex items-center justify-center" on:click={() => showDrawer = true} aria-label="Open menu">
+    <button class="fixed bottom-24 right-4 z-30 bg-white rounded-xl shadow-lg p-4 flex items-center justify-center gap-2" on:click={() => showDrawer = true} aria-label="Open menu">
       <svg width="28" height="28" fill="none" viewBox="0 0 24 24"><rect y="5" width="24" height="2" rx="1" fill="#222"/><rect y="11" width="24" height="2" rx="1" fill="#222"/><rect y="17" width="24" height="2" rx="1" fill="#222"/></svg>
+      <span class="text-base font-semibold" style="color: rgb(45, 77, 49);">Configura</span>
     </button>
     
     <!-- Overlay backdrop -->
@@ -187,7 +188,7 @@
         </md-text-button>
       </div> -->
 
-        <span class="pb-4 text-center outline-text label-small">
+        <span class="pb-4 text-center outline-text label-small" style="color: rgb(14, 14, 14);">
           © 2025 Klaryo. All rights reserved.
         </span>
       </div>

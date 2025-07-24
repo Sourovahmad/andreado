@@ -354,8 +354,8 @@
         </div>
       </div>
     {/if}
-    <div class="flex flex-col space-y-2 px-2">
-      <span class="outline-text label-medium">
+    <div class="flex flex-col space-y-2 px-2" >
+      <span class="outline-text label-medium" style="color: rgb(14, 14, 14);">
         <b>{title}</b> provides raw and processed imagery and granular details on an area surrounding
         a location.
       </span>
@@ -378,7 +378,7 @@
           <Calendar bind:month bind:day onChange={async () => showDataLayer()} />
         {/if}
 
-        <span class="outline-text label-medium">
+        <span class="outline-text label-medium primary-text" style="color: rgb(14, 14, 14);">
           {#if imageryQuality == 'HIGH'}
             <p><b>Low altitude aerial imagery</b> available.</p>
             <p>Imagery and DSM data were processed at <b>10 cm/pixel</b>.</p>
@@ -398,12 +398,12 @@
           <InputBool bind:value={playAnimation} label="Play animation" />
         {/if}
       {/if}
-      <div class="flex flex-row">
+      <!-- <div class="flex flex-row">
         <div class="grow" />
         <md-filled-tonal-button role={undefined} on:click={() => apiResponseDialog.show()}>
           API response
         </md-filled-tonal-button>
-      </div>
+      </div> -->
 
       <md-dialog bind:this={apiResponseDialog}>
         <div slot="headline">

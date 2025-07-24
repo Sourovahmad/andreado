@@ -19,36 +19,36 @@
 @tailwind utilities;
 
 :root {
-  --md-sys-color-primary: var(--md-sys-color-primary-light);
-  --md-sys-color-on-primary: var(--md-sys-color-on-primary-light);
-  --md-sys-color-primary-container: var(--md-sys-color-primary-container-light);
-  --md-sys-color-on-primary-container: var(--md-sys-color-on-primary-container-light);
-  --md-sys-color-secondary: var(--md-sys-color-secondary-light);
-  --md-sys-color-on-secondary: var(--md-sys-color-on-secondary-light);
-  --md-sys-color-secondary-container: var(--md-sys-color-secondary-container-light);
-  --md-sys-color-on-secondary-container: var(--md-sys-color-on-secondary-container-light);
-  --md-sys-color-tertiary: var(--md-sys-color-tertiary-light);
-  --md-sys-color-on-tertiary: var(--md-sys-color-on-tertiary-light);
-  --md-sys-color-tertiary-container: var(--md-sys-color-tertiary-container-light);
-  --md-sys-color-on-tertiary-container: var(--md-sys-color-on-tertiary-container-light);
-  --md-sys-color-error: var(--md-sys-color-error-light);
-  --md-sys-color-on-error: var(--md-sys-color-on-error-light);
-  --md-sys-color-error-container: var(--md-sys-color-error-container-light);
-  --md-sys-color-on-error-container: var(--md-sys-color-on-error-container-light);
-  --md-sys-color-outline: var(--md-sys-color-outline-light);
-  --md-sys-color-background: var(--md-sys-color-background-light);
-  --md-sys-color-on-background: var(--md-sys-color-on-background-light);
-  --md-sys-color-surface: var(--md-sys-color-surface-light);
-  --md-sys-color-on-surface: var(--md-sys-color-on-surface-light);
-  --md-sys-color-surface-variant: var(--md-sys-color-surface-variant-light);
-  --md-sys-color-on-surface-variant: var(--md-sys-color-on-surface-variant-light);
-  --md-sys-color-inverse-surface: var(--md-sys-color-inverse-surface-light);
-  --md-sys-color-inverse-on-surface: var(--md-sys-color-inverse-on-surface-light);
-  --md-sys-color-inverse-primary: var(--md-sys-color-inverse-primary-light);
-  --md-sys-color-shadow: var(--md-sys-color-shadow-light);
-  --md-sys-color-surface-tint: var(--md-sys-color-surface-tint-light);
-  --md-sys-color-outline-variant: var(--md-sys-color-outline-variant-light);
-  --md-sys-color-scrim: var(--md-sys-color-scrim-light);
+  --md-sys-color-primary: rgb(45, 77, 49);
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #eafcf1;
+  --md-sys-color-on-primary-container: rgb(45, 77, 49);
+  --md-sys-color-secondary: #F9C846;
+  --md-sys-color-on-secondary: rgb(14, 14, 14);
+  --md-sys-color-secondary-container: #fffbe6;
+  --md-sys-color-on-secondary-container: #F9C846;
+  --md-sys-color-tertiary: #F15A29;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #fff0e6;
+  --md-sys-color-on-tertiary-container: #F15A29;
+  --md-sys-color-error: #E53935;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #fff0ee;
+  --md-sys-color-on-error-container: #E53935;
+  --md-sys-color-outline: #e5e5e5;
+  --md-sys-color-background: #f7f7f7;
+  --md-sys-color-on-background: rgb(14, 14, 14);
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: rgb(14, 14, 14);
+  --md-sys-color-surface-variant: #e5e5e5;
+  --md-sys-color-on-surface-variant: rgb(14, 14, 14);
+  --md-sys-color-inverse-surface: rgb(14, 14, 14);
+  --md-sys-color-inverse-on-surface: #ffffff;
+  --md-sys-color-inverse-primary: rgb(45, 77, 49);
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-surface-tint: rgb(45, 77, 49);
+  --md-sys-color-outline-variant: #e5e5e5;
+  --md-sys-color-scrim: #000000;
 }
 
 .dark {
@@ -85,19 +85,19 @@
 }
 
 .primary {
-  background-color: var(--md-sys-color-primary);
+  background-color: rgb(45, 77, 49);
 }
 
 .primary-text {
-  color: var(--md-sys-color-primary);
+  color: rgb(45, 77, 49);
 }
 
 .on-primary {
-  background-color: var(--md-sys-color-on-primary);
+  background-color: #ffffff;
 }
 
 .on-primary-text {
-  color: var(--md-sys-color-on-primary);
+  color: #ffffff;
 }
 
 .primary-container {
@@ -322,4 +322,8 @@
 
 .scrim-text {
   color: var(--md-sys-color-scrim);
+}
+
+body, html {
+  color: rgb(14, 14, 14);
 }

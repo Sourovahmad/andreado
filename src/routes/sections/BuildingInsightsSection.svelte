@@ -265,8 +265,8 @@
     ).toFixed(2)} MWh`}
     secondary={false}
   >
-    <div class="flex flex-col space-y-2 px-2">
-      <span class="outline-text label-medium">
+    <div class="flex flex-col space-y-2 px-2" style="color: rgb(14, 14, 14);">
+      <span class="outline-text label-medium" style="color: rgb(14, 14, 14);">
         <b>{title}</b> provides data on the location, dimensions & solar potential of a building.
       </span>
       
@@ -301,11 +301,11 @@
       />
       <InputBool bind:value={showPanels} label="Solar panels" />
 
-      <div class="grid justify-items-end">
+      <!-- <div class="grid justify-items-end">
         <md-filled-tonal-button role={undefined} on:click={() => apiResponseDialog.show()}>
           API response
-        </md-filled-tonal-button>
-      </div>
+        </md-filled-tonal-button> -->
+      <!-- </div> -->
 
       <md-dialog bind:this={apiResponseDialog}>
         <div slot="headline">

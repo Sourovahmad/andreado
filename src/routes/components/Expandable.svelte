@@ -32,11 +32,11 @@
 </script>
 
 <button class="flex flex-row w-full p-4" on:click={toggle}>
-  <md-icon class={`${titleText} w-12`}>{icon}</md-icon>
+  <md-icon class={`${titleText} w-12`} style="color: rgb(45, 77, 49);">{icon}</md-icon>
   <div class="w-full grid justify-items-start text-left">
-    <p class={`${titleText} body-large`}><b>{title}</b></p>
-    <p class="label-medium outline-text">{subtitle}</p>
-    <p class="label-medium outline-text">{subtitle2}</p>
+    <p class={`${titleText} body-large`} style="color: rgb(45, 77, 49);"><b>{title}</b></p>
+    <p class="label-medium primary-text" style="color: rgb(14, 14, 14);">{subtitle}</p>
+    <p class="label-medium primary-text" style="color: rgb(14, 14, 14);">{subtitle2}</p>
   </div>
   <md-icon-button>
     <md-icon>{section == title ? 'expand_less' : 'expand_more'}</md-icon>

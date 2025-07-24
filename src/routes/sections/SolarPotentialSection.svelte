@@ -337,6 +337,7 @@
         trailing-icon
         role={undefined}
         on:click={() => (showAdvancedSettings = !showAdvancedSettings)}
+        style="color: rgb(45, 77, 49);"
       >
         {showAdvancedSettings ? 'Hide' : 'Show'} advanced settings
         <md-icon slot="icon">
@@ -386,7 +387,7 @@
       </div>
     {/if}
 
-    <div class="grid justify-items-end">
+    <!-- <div class="grid justify-items-end">
       <md-filled-tonal-button
         trailing-icon
         role={undefined}
@@ -396,13 +397,13 @@
         More details
         <md-icon slot="icon">open_in_new</md-icon>
       </md-filled-tonal-button>
-    </div>
+    </div> -->
   </div>
 </Expandable>
 
 <div class="absolute top-16 left-0">
   {#if expandedSection == title}
-    <div class="flex flex-col space-y-2 m-2">
+    <div class="flex flex-col space-y-2 m-2" style="color: rgb(14, 14, 14);">
       <SummaryCard
         {icon}
         {title}
@@ -444,7 +445,7 @@
       />
     </div>
 
-    <div class="mx-2 p-4 surface on-surface-text rounded-lg shadow-lg">
+    <div class="mx-2 p-4 surface on-surface-text rounded-lg shadow-lg" style="color: rgb(14, 14, 14);">
       <div bind:this={costChart} />
       <div class="w-full secondary-text">
         <Table

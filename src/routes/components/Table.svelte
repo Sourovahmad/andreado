@@ -23,10 +23,10 @@
   }[] = [];
 </script>
 
-<table class="table-auto w-full body-medium">
+<table class="table-auto w-full body-medium" style="color: rgb(14, 14, 14);">
   {#each rows as row}
     <tr>
-      <td class="primary-text py-2">
+      <td class="py-2">
         <md-icon>{row.icon ?? ''}</md-icon>
       </td>
       <th class="pl-2 text-left">

@@ -28,9 +28,9 @@
 </script>
 
 <div>
-  <table class="table-auto w-full body-medium secondary-text">
+  <table class="table-auto w-full body-medium" style="color: rgb(14, 14, 14);">
     <tr>
-      <td class="primary-text"><md-icon>solar_power</md-icon> </td>
+      <td><md-icon>solar_power</md-icon> </td>
       <th class="pl-2 text-left">Panels count</th>
       <td class="pl-2 text-right">
         <span>{solarPanelConfigs[configId].panelsCount} panels</span>
