@@ -35,6 +35,7 @@
   import NumberInput from '../components/InputNumber.svelte';
   import Gauge from '../components/Gauge.svelte';
   import { onDestroy } from 'svelte';
+  import { panelConfigStore, getPanelCount, getYearlyEnergy, updatePanelConfig } from '../stores/panelConfigStore';
 
   export let expandedSection: string;
   export let buildingInsights: BuildingInsightsResponse | undefined;
@@ -60,20 +61,30 @@
   let lastRequestedLocation: google.maps.LatLng | undefined;
   let locationChangeTimeout: number | undefined;
 
+  // Use centralized panel config from store
   let panelConfig: SolarPanelConfig | undefined;
-  $: if (buildingInsights && configId !== undefined) {
-    panelConfig = buildingInsights.solarPotential.solarPanelConfigs[configId];
+  $: {
+    const panelState = $panelConfigStore;
+    if (panelState.configId !== undefined && panelState.solarPanelConfigs.length > 0) {
+      panelConfig = panelState.solarPanelConfigs[panelState.configId];
+      console.log('BuildingInsightsSection: panelConfig updated to', panelConfig);
+    }
   }
 
   let solarPanels: google.maps.Polygon[] = [];
-  $: solarPanels.map((panel, i) =>
-    panel.setMap(showPanels && panelConfig && i < panelConfig.panelsCount ? map : null),
-  );
+  $: {
+    const panelState = $panelConfigStore;
+    const currentPanelCount = getPanelCount(panelState);
+    solarPanels.map((panel, i) =>
+      panel.setMap(showPanels && i < currentPanelCount ? map : null),
+    );
+  }
 
   let panelCapacityRatio = 1.0;
-  $: if (buildingInsights) {
-    const defaultPanelCapacity = buildingInsights.solarPotential.panelCapacityWatts;
-    panelCapacityRatio = panelCapacityWatts / defaultPanelCapacity;
+  $: {
+    const panelState = $panelConfigStore;
+    panelCapacityRatio = panelState.panelCapacityWatts / panelState.defaultPanelCapacityWatts;
+   
   }
 
   // Helper function to compare locations with tolerance for floating point precision
@@ -87,7 +98,6 @@
     if (requestSent || (!forceRetry && lastRequestedLocation && 
         locationsEqual(lastRequestedLocation, location) && 
         buildingInsights && !requestError)) {
-      console.log('Using existing building insights, skipping API call');
       
       // Still create solar panels if they don't exist but we have building insights
       if (buildingInsights && solarPanels.length === 0) {
@@ -95,8 +105,6 @@
       }
       return;
     }
-
-    console.log('showSolarPotential', { forceRetry, lat: location.lat(), lng: location.lng() });
     
     // Only reset buildingInsights if we're making a new request
     if (!buildingInsights || forceRetry) {
@@ -112,7 +120,6 @@
     requestSent = true;
     try {
       buildingInsights = await findClosestBuilding(location, googleMapsApiKey);
-      console.log('Successfully fetched building insights');
     } catch (e) {
       console.error('Error fetching building insights:', e);
       requestError = e as RequestError;
@@ -174,7 +181,6 @@
 
   // Function to handle retry with proper flag
   function handleRetry() {
-    console.log('Retry button clicked');
     if (lastRequestedLocation) {
       showSolarPotential(lastRequestedLocation, true);
     }
@@ -196,6 +202,8 @@
       clearTimeout(locationChangeTimeout);
     }
   });
+
+
 </script>
 
 <style>
@@ -281,6 +289,14 @@
       <InputPanelsCount
         bind:configId
         solarPanelConfigs={buildingInsights.solarPotential.solarPanelConfigs}
+        on:configIdChange={(e) => {
+          // Update the panel config store when user manually changes panel count
+          updatePanelConfig({ 
+            configId: e.detail, 
+            manualConfigOverride: true 
+          });
+          console.log('BuildingInsightsSection: configId changed to', e.detail);
+        }}
       />
       
       {#if manualConfigOverride}
@@ -298,6 +314,11 @@
         icon="bolt"
         label="Panel capacity"
         suffix="Watts"
+        onChange={(e) => {
+          // Update the panel config store when panel capacity changes
+          updatePanelConfig({ panelCapacityWatts: e });
+          console.log('BuildingInsightsSection: panelCapacityWatts changed to', e);
+        }}
       />
       <InputBool bind:value={showPanels} label="Solar panels" />
 
@@ -365,7 +386,7 @@
           <Gauge
             icon="solar_power"
             title="Panels count"
-            label={showNumber(panelConfig.panelsCount)}
+            label={showNumber(getPanelCount($panelConfigStore))}
             labelSuffix={`/ ${showNumber(solarPanels.length)}`}
             max={solarPanels.length}
             value={panelConfig.panelsCount}
@@ -374,11 +395,11 @@
           <Gauge
             icon="energy_savings_leaf"
             title="Yearly energy"
-            label={showNumber((panelConfig?.yearlyEnergyDcKwh ?? 0) * panelCapacityRatio)}
+            label={showNumber(getYearlyEnergy($panelConfigStore))}
             labelSuffix="KWh"
             max={buildingInsights.solarPotential.solarPanelConfigs.slice(-1)[0]
               .yearlyEnergyDcKwh * panelCapacityRatio}
-            value={panelConfig.yearlyEnergyDcKwh * panelCapacityRatio}
+            value={getYearlyEnergy($panelConfigStore)}
           />
         </div>
       </div>

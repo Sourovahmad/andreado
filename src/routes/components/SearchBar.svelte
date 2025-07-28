@@ -16,6 +16,7 @@
 <script lang="ts">
   /* global google */
   import { onMount } from 'svelte';
+  import { updateLocation } from '../stores/locationStore';
 
   export let map: google.maps.Map;          // existing map instance
   export let initialValue = '';             // pre-filled value (optional)
@@ -59,6 +60,34 @@
 
       // Expose the location back to the parent component
       location = place.location ?? undefined;
+      
+      // Use the best available name/address
+      const locationName = place.displayName || place.formattedAddress || 'Unknown Location';
+      const locationAddress = place.formattedAddress || place.displayName || 'Unknown Address';
+
+      console.log('locationName in searchBar.svelte', locationName);
+      console.log('place.displayName:', place.displayName);
+      console.log('place.formattedAddress:', place.formattedAddress);
+
+      // Update the central location store
+      updateLocation({
+        name: locationName,
+        address: locationAddress,
+        coordinates: place.location ? { lat: place.location.lat(), lng: place.location.lng() } : undefined
+      });
+      
+      console.log('Updated location store with:', { name: locationName, address: locationAddress });
+      
+      // Dispatch custom event to update location name
+      const event = new CustomEvent('locationChange', {
+        detail: {
+          location: place.location,
+          name: locationName,
+          address: locationAddress,
+          locationName: locationName,
+        }
+      });
+      container.dispatchEvent(event);
     });
   });
 </script>

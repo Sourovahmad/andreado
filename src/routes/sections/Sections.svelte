@@ -22,17 +22,21 @@
   import BuildingInsightsSection from './BuildingInsightsSection.svelte';
   import DataLayersSection from './DataLayersSection.svelte';
   import SolarPotentialSection from './SolarPotentialSection.svelte';
+  import PDFDownloadButton from '../components/PDFDownloadButton.svelte';
   import { onMount } from 'svelte';
   import { sidebarMobileState } from './sidebarMobileState';
   import { get } from 'svelte/store';
   import { writable } from 'svelte/store';
+  import { panelConfigStore, updatePanelConfig } from '../stores/panelConfigStore';
 
   export let location: google.maps.LatLng;
   export let map: google.maps.Map;
   export let geometryLibrary: google.maps.GeometryLibrary;
   export let googleMapsApiKey: string;
   export let expandedSection: string;
-
+  export let locationName: string = '';
+  export let mapElement: HTMLElement | undefined = undefined;
+  
   // Create a store for cached building insights to persist across popup open/close
   const buildingInsightsCache = writable<{
     location?: { lat: number; lng: number };
@@ -53,7 +57,6 @@
         Math.abs(cache.location.lng - currentLoc.lng) < 0.00001 &&
         Date.now() - cache.timestamp < 5 * 60 * 1000) {
       
-      console.log('Using cached building insights');
       buildingInsights = cache.data;
     }
   }
@@ -65,16 +68,32 @@
       data: buildingInsights,
       timestamp: Date.now()
     });
+    
+    // Update panel config store with new building insights data
+    updatePanelConfig({
+      solarPanelConfigs: buildingInsights.solarPotential.solarPanelConfigs,
+      defaultPanelCapacityWatts: buildingInsights.solarPotential.panelCapacityWatts
+    });
   }
 
   // State (local, for desktop)
   let showPanels = true;
   let monthlyAverageEnergyBillInput = 120;
-  let panelCapacityWattsInput = 400;
   let energyCostPerKwhInput = 0.3;
   let dcToAcDerateInput = 0.85;
+  
+  // Use centralized panel config store
+  let panelCapacityWattsInput: number;
   let configId: number | undefined;
-  let manualConfigOverride = false; // Track if user manually changed panel count
+  let manualConfigOverride = false;
+  
+  // Subscribe to panel config store
+  $: {
+    const panelState = $panelConfigStore;
+    panelCapacityWattsInput = panelState.panelCapacityWatts;
+    configId = panelState.configId;
+    manualConfigOverride = panelState.manualConfigOverride;
+  }
 
   let isMobile = false;
 
@@ -98,7 +117,6 @@
       dcToAcDerateInput = mobileState.dcToAcDerateInput;
       configId = mobileState.configId;
       manualConfigOverride = mobileState.manualConfigOverride;
-      console.log('Loaded persisted mobile state:', mobileState);
     }
     
     return () => {
@@ -157,6 +175,9 @@
     configId = newConfigId;
     manualConfigOverride = true;
     
+    // Update panel config store
+    updatePanelConfig({ configId: newConfigId, manualConfigOverride: true });
+    
     if (isMobile) {
       updateSidebarState({ configId, manualConfigOverride });
     }
@@ -165,6 +186,10 @@
   // Function to reset to automatic calculation
   function resetToAutoConfig() {
     manualConfigOverride = false;
+    
+    // Update panel config store
+    updatePanelConfig({ manualConfigOverride: false });
+    
     if (isMobile) {
       updateSidebarState({ manualConfigOverride });
     }
@@ -172,15 +197,18 @@
     if (buildingInsights) {
       const defaultPanelCapacity = buildingInsights.solarPotential.panelCapacityWatts;
       const panelCapacityRatio = panelCapacityWattsInput / defaultPanelCapacity;
-      configId = findSolarConfig(
+      const newConfigId = findSolarConfig(
         buildingInsights.solarPotential.solarPanelConfigs,
         yearlyKwhEnergyConsumption,
         panelCapacityRatio,
         dcToAcDerateInput,
       );
       
+      configId = newConfigId;
+      updatePanelConfig({ configId: newConfigId });
+      
       if (isMobile) {
-        updateSidebarState({ configId });
+        updateSidebarState({ configId: newConfigId });
       }
     }
   }
@@ -193,16 +221,20 @@
   $: if (!manualConfigOverride && configId === undefined && buildingInsights) {
     const defaultPanelCapacity = buildingInsights.solarPotential.panelCapacityWatts;
     const panelCapacityRatio = panelCapacityWattsInput / defaultPanelCapacity;
-    configId = findSolarConfig(
+    const newConfigId = findSolarConfig(
       buildingInsights.solarPotential.solarPanelConfigs,
       yearlyKwhEnergyConsumption,
       panelCapacityRatio,
       dcToAcDerateInput,
     );
     
+    // Update both local state and panel config store
+    configId = newConfigId;
+    updatePanelConfig({ configId: newConfigId });
+    
     // Update mobile store if on mobile
     if (isMobile) {
-      updateSidebarState({ configId });
+      updateSidebarState({ configId: newConfigId });
     }
   }
 </script>
@@ -257,5 +289,22 @@
       on:dcToAcDerateInputChange={e => updateSidebarState({ dcToAcDerateInput: e.detail })}
       on:configIdChange={e => handleConfigIdChange(e.detail)}
     />
+    
+    <!-- PDF Download Button -->
+    <md-divider inset />
+    <div class="p-4">
+      <PDFDownloadButton 
+        {location}
+        {buildingInsights}
+        {configId}
+        panelCapacityWatts={panelCapacityWattsInput}
+        monthlyAverageEnergyBill={monthlyAverageEnergyBillInput}
+        energyCostPerKwh={energyCostPerKwhInput}
+        dcToAcDerate={dcToAcDerateInput}
+        {mapElement}
+      />
+      
+
+    </div>
   {/if}
 </div>

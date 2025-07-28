@@ -23,7 +23,10 @@
   import { onMount } from 'svelte';
   import SearchBar from './components/SearchBar.svelte';
   import Sections from './sections/Sections.svelte';
+  import PDFDownloadButton from './components/PDFDownloadButton.svelte';
   import { onDestroy } from 'svelte';
+  import { locationStore, updateLocation } from './stores/locationStore';
+  import { panelConfigStore, updatePanelConfig } from './stores/panelConfigStore';
   
   let isMobile = false;
   let showDrawer = false;
@@ -50,9 +53,13 @@
     address: 'Via Mascagni 144, Modena',
   };
   let location: google.maps.LatLng | undefined;
+  // Use the location store instead of local variable
+  let locationName: string;
+  $: locationName = $locationStore.name;
   const zoom = 19;
+  
 
-  // Initialize app.
+   // Initialize app.
   let mapElement: HTMLElement;
   let map: google.maps.Map;
   let geometryLibrary: google.maps.GeometryLibrary;
@@ -79,6 +86,12 @@
 
     // Initialize the map at the desired location.
     location = geocoderResult.geometry.location;
+    // Update the location store with the geocoded result
+    updateLocation({
+      name: geocoderResult.formatted_address || defaultPlace.name,
+      address: geocoderResult.formatted_address || defaultPlace.address,
+      coordinates: { lat: location.lat(), lng: location.lng() }
+    });
     map = new mapsLibrary.Map(mapElement, {
       center: location,
       zoom: zoom,
@@ -117,12 +130,16 @@
     <div class="absolute top-4 left-1/2 -translate-x-1/2 w-[90vw] max-w-xl z-20">
       {#if placesLibrary && map}
         <div class="rounded-full bg-[#e5e5e5] px-4 py-2 shadow-md">
-          <SearchBar bind:location {map} initialValue={defaultPlace.name} />
+          <SearchBar bind:location {map} initialValue={defaultPlace.name} on:locationChange={(e) => {
+            // The location store is already updated in SearchBar component
+          }} />
         </div>
       {/if}
     </div>
 
     <div bind:this={mapElement} class="absolute inset-0 w-full h-full z-10" />
+    
+
     
     <button class="fixed bottom-24 right-4 z-30 bg-white rounded-xl shadow-lg p-4 flex items-center justify-center gap-2" on:click={() => showDrawer = true} aria-label="Open menu">
       <svg width="28" height="28" fill="none" viewBox="0 0 24 24"><rect y="5" width="24" height="2" rx="1" fill="#222"/><rect y="11" width="24" height="2" rx="1" fill="#222"/><rect y="17" width="24" height="2" rx="1" fill="#222"/></svg>
@@ -138,6 +155,8 @@
     <div class="fixed bottom-0 left-0 w-full z-50 bg-white rounded-t-2xl shadow-2xl p-4 max-h-[80vh] overflow-y-auto transition-transform duration-300 {showDrawer ? 'translate-y-0' : 'translate-y-full'}">
       {#if location}
         <Sections {location} {map} {geometryLibrary} {googleMapsApiKey}
+          {locationName}
+          {mapElement}
           bind:expandedSection
         />
       {/if}
@@ -150,7 +169,9 @@
     <aside class="flex-none md:w-96 w-80 p-2 pt-3 overflow-auto">
       <div class="flex flex-col space-y-2 h-full">
         {#if placesLibrary && map}
-          <SearchBar bind:location {map} initialValue={defaultPlace.name} />
+          <SearchBar bind:location {map} initialValue={defaultPlace.name} on:locationChange={(e) => {
+            // The location store is already updated in SearchBar component
+          }} />
         {/if}
 
         <!-- <div class="p-4 surface-variant outline-text rounded-lg space-y-3">
@@ -173,7 +194,11 @@
       </div> -->
 
         {#if location}
-          <Sections {location} {map} {geometryLibrary} {googleMapsApiKey} bind:expandedSection />
+          <Sections {location} {map} {geometryLibrary} {googleMapsApiKey}
+            {locationName}
+            {mapElement}
+            bind:expandedSection 
+          />
         {/if}
 
         <div class="grow" />

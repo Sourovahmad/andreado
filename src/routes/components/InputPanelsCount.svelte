@@ -17,13 +17,20 @@
 <script lang="ts">
   import type { MdSlider } from '@material/web/slider/slider';
   import type { SolarPanelConfig } from '../solar';
+  import { createEventDispatcher } from 'svelte';
 
   export let configId: number;
   export let solarPanelConfigs: SolarPanelConfig[];
+  
+  const dispatch = createEventDispatcher();
 
   function onChange(event: Event) {
     const target = event.target as MdSlider;
-    configId = target.value ?? 0;
+    const newConfigId = target.value ?? 0;
+    configId = newConfigId;
+    
+    // Dispatch event to notify parent of config change
+    dispatch('configIdChange', newConfigId);
   }
 </script>
 

@@ -33,6 +33,7 @@
   import InputMoney from '../components/InputMoney.svelte';
   import InputPercent from '../components/InputPercent.svelte';
   import InputRatio from '../components/InputRatio.svelte';
+  import { panelConfigStore, getCurrentPanelConfig, getPanelCount, getYearlyEnergy, updatePanelConfig } from '../stores/panelConfigStore';
 
   export let expandedSection: string;
   export let configId: number;
@@ -96,27 +97,40 @@
   let remainingLifetimeUtilityBill: number = yearlyUtilityBillEstimates.reduce((x, y) => x + y, 0);
   let totalCostWithSolar: number =
     installationCostTotal + remainingLifetimeUtilityBill - (installationCostTotal * solarIncentivesPercent);
-  console.log(`Cost with solar: €${totalCostWithSolar.toFixed(2)}`);
 
   // Cost without solar for installation life span
   let yearlyCostWithoutSolar: number[] = [...Array(installationLifeSpan).keys()].map(
     (year) => (monthlyAverageEnergyBill * 12 * costIncreaseFactor ** year) / discountRate ** year,
   );
   let totalCostWithoutSolar: number = yearlyCostWithoutSolar.reduce((x, y) => x + y, 0);
-  console.log(`Cost without solar: €${totalCostWithoutSolar.toFixed(2)}`);
 
   // Savings with solar for installation life span
   let savings: number = totalCostWithoutSolar - totalCostWithSolar;
-  console.log(`Savings: €${savings.toFixed(2)} in ${installationLifeSpan} years`);
   // [END solar_potential_calculations]
 
   // Reactive calculations
   let panelCapacityRatio: number = 1.0;
   $: panelCapacityRatio = panelCapacityWattsInput / defaultPanelCapacityWatts;
-  $: installationCostTotal = installationCostPerWatt * installationSizeKw * 1000;
+  
+  // Debug logging for panel config consistency
+  $: {
+    const panelState = $panelConfigStore;
+    const currentPanelConfig = getCurrentPanelConfig(panelState);
+    console.log('=== SolarPotentialSection Panel Config ===');
+    console.log('configId from props:', configId);
+    console.log('configId from store:', panelState.configId);
+    console.log('panelCapacityWatts from props:', panelCapacityWattsInput);
+    console.log('panelCapacityWatts from store:', panelState.panelCapacityWatts);
+    console.log('currentPanelConfig from store:', currentPanelConfig);
+    console.log('panelCount from store:', getPanelCount(panelState));
+    console.log('yearlyEnergy from store:', getYearlyEnergy(panelState));
+  }
+  
+
   $: if (solarPanelConfigs[configId]) {
     installationSizeKw = (solarPanelConfigs[configId].panelsCount * panelCapacityWattsInput) / 1000;
   }
+  $: installationCostTotal = installationCostPerWatt * installationSizeKw * 1000;
   $: monthlyKwhEnergyConsumption = monthlyAverageEnergyBillInput / energyCostPerKwhInput;
   $: yearlyKwhEnergyConsumption = monthlyKwhEnergyConsumption * 12;
   $: if (solarPanelConfigs[configId]) {
@@ -285,7 +299,18 @@
 
     <div class="inline-flex items-center space-x-2">
       <div class="grow">
-        <InputPanelsCount bind:configId {solarPanelConfigs} />
+        <InputPanelsCount 
+          bind:configId 
+          {solarPanelConfigs}
+          on:configIdChange={(e) => {
+            // Update the panel config store when user manually changes panel count
+            updatePanelConfig({ 
+              configId: e.detail, 
+              manualConfigOverride: true 
+            });
+            console.log('SolarPotentialSection: configId changed to', e.detail);
+          }}
+        />
       </div>
       <md-icon-button role={undefined} on:click={updateConfig}>
         <md-icon>sync</md-icon>

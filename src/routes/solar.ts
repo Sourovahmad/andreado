@@ -149,7 +149,6 @@ export async function findClosestBuilding(
     requiredQuality: "MEDIUM",
     // experiments: "EXPANDED_COVERAGE"
   };
-  console.log('GET buildingInsights\n', args);
   const params = new URLSearchParams({ ...args, key: apiKey });
   
   return rateLimiter.execute(() => 
@@ -163,7 +162,6 @@ export async function findClosestBuilding(
         throw content;
       }
       
-      console.log('buildingInsightsResponse', content);
       return content;
     })
   );
@@ -196,7 +194,6 @@ export async function getDataLayerUrls(
     // the Solar API will return us the highest quality available.
     required_quality: 'LOW',
   };
-  console.log('GET dataLayers\n', args);
   const params = new URLSearchParams({ ...args, key: apiKey });
   
   return rateLimiter.execute(() =>
@@ -210,7 +207,6 @@ export async function getDataLayerUrls(
         throw content;
       }
       
-      console.log('dataLayersResponse', content);
       return content;
     })
   );
@@ -241,7 +237,6 @@ import proj4 from 'proj4';
  * @return {Promise<GeoTiff>}  Pixel values with shape and lat/lon bounds.
  */
 export async function downloadGeoTIFF(url: string, apiKey: string): Promise<GeoTiff> {
-  console.log(`Downloading data layer: ${url}`);
 
   return rateLimiter.execute(() =>
     withRetry(async () => {
@@ -316,7 +311,6 @@ async function withRetry<T>(
       
       // Calculate delay with exponential backoff and jitter
       const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
-      console.log(`Rate limited (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${Math.round(delay)}ms...`);
       
       await new Promise(resolve => setTimeout(resolve, delay));
     }
