@@ -105,6 +105,91 @@
       streetViewControl: false,
       zoomControl: false,
     });
+
+    // Make map cursor indicate it's clickable
+    mapElement.style.cursor = 'crosshair';
+
+    // Add click event listener for building selection
+    let clickMarker: google.maps.Marker | undefined;
+    
+    map.addListener('click', async (event: google.maps.MapMouseEvent) => {
+      if (event.latLng) {
+        console.log('Map clicked at:', event.latLng.lat(), event.latLng.lng());
+        
+        // Remove previous click marker if it exists
+        if (clickMarker) {
+          clickMarker.setMap(null);
+        }
+        
+        // Add a temporary marker to show where user clicked
+        clickMarker = new google.maps.Marker({
+          position: event.latLng,
+          map: map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: '#4285F4',
+            fillOpacity: 0.8,
+            strokeColor: '#ffffff',
+            strokeWeight: 2,
+          },
+          title: 'Analyzing this location...'
+        });
+        
+        // Update the location to the clicked coordinates
+        location = event.latLng;
+        
+        // Use reverse geocoding to get a readable address for the clicked location
+        try {
+          const geocoder = new google.maps.Geocoder();
+          const geocoderResponse = await geocoder.geocode({
+            location: event.latLng
+          });
+          
+          if (geocoderResponse.results && geocoderResponse.results.length > 0) {
+            const result = geocoderResponse.results[0];
+            const clickedAddress = result.formatted_address || 'Unknown Location';
+            
+            console.log('Clicked location address:', clickedAddress);
+            
+            // Update the location store with the clicked location
+            updateLocation({
+              name: clickedAddress,
+              address: clickedAddress,
+              coordinates: { lat: event.latLng.lat(), lng: event.latLng.lng() }
+            });
+            
+            // Remove the temporary marker after a short delay (it will be replaced by solar panels)
+            setTimeout(() => {
+              if (clickMarker) {
+                clickMarker.setMap(null);
+                clickMarker = undefined;
+              }
+            }, 2000);
+            
+            console.log('Updated location store with clicked location');
+          }
+        } catch (error) {
+          console.error('Error reverse geocoding clicked location:', error);
+          
+          // Even if reverse geocoding fails, still update with coordinates
+          const coordsString = `${event.latLng.lat().toFixed(5)}, ${event.latLng.lng().toFixed(5)}`;
+          updateLocation({
+            name: coordsString,
+            address: coordsString,
+            coordinates: { lat: event.latLng.lat(), lng: event.latLng.lng() }
+          });
+          
+          // Remove the temporary marker after a short delay
+          setTimeout(() => {
+            if (clickMarker) {
+              clickMarker.setMap(null);
+              clickMarker = undefined;
+            }
+          }, 2000);
+        }
+      }
+    });
   });
 
   // Month changer state for Data Layers endpoint
@@ -113,6 +198,10 @@
   let day = 14;
   let hour = 0;
   let layerId = 'monthlyFlux';
+  
+  // Global loading state for heatmap
+  let isHeatmapLoading = false;
+  let heatmapLoadingStep = '';
   $: monthNames = $isLoading ? ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] : [
     $_('months.jan'),
     $_('months.feb'),
@@ -159,12 +248,36 @@
               // The location store is already updated in SearchBar component
             }} />
           </div>
+          
+          <!-- Click instruction -->
+          <div class="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm text-center">
+            <p class="text-sm text-gray-700">
+              <span class="font-medium">💡 Tip:</span> 
+              {$isLoading ? 'Click anywhere on the map to analyze that building' : $_('page.clickInstruction')}
+            </p>
+          </div>
         {/if}
 
       </div>
     </div>
 
     <div bind:this={mapElement} class="absolute inset-0 w-full h-full z-10" />
+    
+    <!-- Floating Heatmap Loader -->
+    {#if isHeatmapLoading}
+      <div class="fixed top-4 left-4 z-30 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 flex items-center gap-3 border border-orange-200">
+        <div class="w-6 h-6">
+          <svg class="animate-spin w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-sm font-semibold text-orange-800">Loading Heatmap</span>
+          <span class="text-xs text-orange-600">{heatmapLoadingStep || 'Processing solar data...'}</span>
+        </div>
+      </div>
+    {/if}
     
 
     
@@ -186,20 +299,45 @@
           {locationName}
           {mapElement}
           bind:expandedSection
-        />
+          bind:isHeatmapLoading 
+          bind:heatmapLoadingStep />
       {/if}
       <span class="block pt-4 text-center outline-text label-small">{$isLoading ? '© 2025 Klaryo. All rights reserved.' : $_('page.copyright')}</span>
     </div>
   </div>
 {:else}
   <div class="flex flex-row h-full">
-    <div bind:this={mapElement} class="w-full" />
+    <div bind:this={mapElement} class="w-full relative">
+      <!-- Floating Heatmap Loader for Desktop -->
+      {#if isHeatmapLoading}
+        <div class="absolute top-4 left-4 z-30 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 flex items-center gap-3 border border-orange-200">
+          <div class="w-6 h-6">
+            <svg class="animate-spin w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-sm font-semibold text-orange-800">Loading Heatmap</span>
+            <span class="text-xs text-orange-600">{heatmapLoadingStep || 'Processing solar data...'}</span>
+          </div>
+        </div>
+      {/if}
+    </div>
     <aside class="flex-none md:w-96 w-80 p-2 pt-3 overflow-auto">
       <div class="flex flex-col space-y-2 h-full">
         {#if placesLibrary && map}
           <SearchBar bind:location {map} initialValue={defaultPlace.name} on:locationChange={(e) => {
             // The location store is already updated in SearchBar component
           }} />
+          
+          <!-- Click instruction for desktop -->
+          <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-center">
+            <p class="text-sm text-blue-800">
+              <span class="font-medium">💡 Tip:</span> 
+              {$isLoading ? 'Click anywhere on the map to analyze that building' : $_('page.clickInstruction')}
+            </p>
+          </div>
         {/if}
 
         <!-- <div class="p-4 surface-variant outline-text rounded-lg space-y-3">
@@ -226,7 +364,8 @@
             {locationName}
             {mapElement}
             bind:expandedSection 
-          />
+            bind:isHeatmapLoading 
+            bind:heatmapLoadingStep />
         {/if}
 
         <div class="grow" />

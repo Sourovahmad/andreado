@@ -2,7 +2,8 @@
   "page": {
     "configure": "Configura",
     "copyright": "© 2025 Klaryo. Tutti i diritti riservati.",
-    "openMenu": "Apri menu"
+    "openMenu": "Apri menu",
+    "clickInstruction": "Clicca ovunque sulla mappa per analizzare quell'edificio"
   },
   "months": {
     "jan": "Gen",

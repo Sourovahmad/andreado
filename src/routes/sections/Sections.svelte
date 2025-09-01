@@ -36,6 +36,8 @@
   export let expandedSection: string;
   export let locationName: string = '';
   export let mapElement: HTMLElement | undefined = undefined;
+  export let isHeatmapLoading: boolean = false;
+  export let heatmapLoadingStep: string = '';
   
   // Create a store for cached building insights to persist across popup open/close
   const buildingInsightsCache = writable<{
@@ -271,6 +273,8 @@
       {buildingInsights}
       {geometryLibrary}
       {map}
+      bind:isHeatmapLoading
+      bind:loadingStep={heatmapLoadingStep}
       on:showPanelsChange={e => updateSidebarState({ showPanels: e.detail })}
     />
 

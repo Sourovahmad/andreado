@@ -44,6 +44,8 @@
 
   export let googleMapsApiKey: string;
   export let buildingInsights: BuildingInsightsResponse;
+  export let isHeatmapLoading: boolean = false;
+  export let loadingStep: string = '';
   
 
   export let geometryLibrary: google.maps.GeometryLibrary;
@@ -152,6 +154,7 @@
 
     if (!layer) {
       isLoading = true;
+      isHeatmapLoading = true;
       try {
         const center = buildingInsights.center;
         const ne = buildingInsights.boundingBox.ne;
@@ -163,6 +166,7 @@
         const radius = Math.ceil(diameter / 2);
         
         try {
+          loadingStep = 'Fetching data layer URLs...';
           dataLayersResponse = await getDataLayerUrls(center, radius, googleMapsApiKey);
         } catch (e) {
           console.error('Error fetching data layer URLs:', e);
@@ -176,6 +180,7 @@
 
         isLoading = true;
         try {
+          loadingStep = 'Downloading and processing heatmap data...';
           layer = await getLayer(layerId as LayerId, dataLayersResponse, googleMapsApiKey);
         } catch (e) {
           console.error('Error creating layer:', e);
@@ -196,12 +201,13 @@
         return;
       } finally {
         isLoading = false;
+        isHeatmapLoading = false;
       }
     }
 
     try {
       const bounds = layer.bounds;
-      console.log('DataLayersSection: Rendering layer with bounds:', bounds);
+      loadingStep = 'Rendering heatmap overlays...';
       overlays.map((overlay) => overlay.setMap(null));
       overlays = layer
         .render(showRoofOnly, month, day)
@@ -210,6 +216,9 @@
       if (!['monthlyFlux', 'hourlyShade'].includes(layer.id)) {
         overlays[0].setMap(map);
       }
+      
+      // Mark heatmap loading as complete when overlays are rendered
+      isHeatmapLoading = false;
     } catch (e) {
       console.error('Error rendering layer:', e);
       requestError = {
@@ -219,6 +228,7 @@
           status: 'RENDER_ERROR'
         }
       };
+      isHeatmapLoading = false;
     }
   }
 
@@ -300,6 +310,11 @@
     // Clear existing overlays
     overlays.map((overlay) => overlay.setMap(null));
     overlays = [];
+    
+    // Start showing heatmap loader
+    if (layerId !== 'none') {
+      isHeatmapLoading = true;
+    }
     
     // Trigger showDataLayer if we have a valid layerId
     if (layerId !== 'none') {

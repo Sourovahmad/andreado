@@ -2,7 +2,8 @@
   "page": {
     "configure": "Configure",
     "copyright": "© 2025 Klaryo. All rights reserved.",
-    "openMenu": "Open menu"
+    "openMenu": "Open menu",
+    "clickInstruction": "Click anywhere on the map to analyze that building"
   },
   "months": {
     "jan": "Jan",
