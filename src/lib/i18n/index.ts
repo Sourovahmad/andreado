@@ -8,7 +8,7 @@ register('it', () => import('./it.json'));
 
 init({
   fallbackLocale: defaultLocale,
-  initialLocale: browser ? window.navigator.language : defaultLocale,
+  initialLocale: defaultLocale, // Always start with English, let geolocation detection override
   loadingDelay: 200,
   warnOnMissingMessages: false,
 });

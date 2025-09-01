@@ -28,7 +28,7 @@
   import { locationStore, updateLocation } from './stores/locationStore';
   import { panelConfigStore, updatePanelConfig } from './stores/panelConfigStore';
   import { _, locale, isLoading } from 'svelte-i18n';
-  import LanguageSwitcher from './components/LanguageSwitcher.svelte';
+
   
   let isMobile = false;
   let showDrawer = false;
@@ -160,7 +160,7 @@
             }} />
           </div>
         {/if}
-        <LanguageSwitcher />
+
       </div>
     </div>
 
