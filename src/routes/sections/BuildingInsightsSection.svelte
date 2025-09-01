@@ -36,6 +36,7 @@
   import Gauge from '../components/Gauge.svelte';
   import { onDestroy } from 'svelte';
   import { panelConfigStore, getPanelCount, getYearlyEnergy, updatePanelConfig } from '../stores/panelConfigStore';
+  import { _, isLoading } from 'svelte-i18n';
 
   export let expandedSection: string;
   export let buildingInsights: BuildingInsightsResponse | undefined;
@@ -51,7 +52,7 @@
   export let map: google.maps.Map;
 
   const icon = 'home';
-  const title = 'Building Insights endpoint';
+  $: title = $isLoading ? 'Building Insights endpoint' : $_('sections.buildingInsightsEndpoint');
 
   let requestSent = false;
   let requestError: RequestError | undefined;
@@ -275,14 +276,14 @@
   >
     <div class="flex flex-col space-y-2 px-2" style="color: rgb(14, 14, 14);">
       <span class="outline-text label-medium" style="color: rgb(14, 14, 14);">
-        <b>{title}</b> provides data on the location, dimensions & solar potential of a building.
+        <b>{title}</b> {$isLoading ? 'provides data on the location, dimensions & solar potential of a building.' : $_('buildingInsights.description')}
       </span>
       
       <!-- Show data freshness indicator -->
       {#if buildingInsights}
         <div class="flex items-center space-x-1 px-2 py-1 bg-green-50 rounded-md">
           <md-icon class="text-green-600 text-sm">check_circle</md-icon>
-          <span class="text-green-700 label-small">Data loaded successfully</span>
+          <span class="text-green-700 label-small">{$isLoading ? 'Data loaded successfully' : $_('buildingInsights.dataLoaded')}</span>
         </div>
       {/if}
 
@@ -302,9 +303,9 @@
       {#if manualConfigOverride}
         <div class="flex items-center space-x-2 px-2 py-1 bg-blue-50 rounded-md">
           <md-icon class="text-blue-600">settings</md-icon>
-          <span class="text-blue-700 label-small flex-grow">Manual panel count selected</span>
+          <span class="text-blue-700 label-small flex-grow">{$isLoading ? 'Manual panel count selected' : $_('buildingInsights.manualPanelCount')}</span>
           <md-text-button role={undefined} on:click={resetToAutoConfig}>
-            Auto
+            {$isLoading ? 'Auto' : $_('common.auto')}
             <md-icon slot="icon">refresh</md-icon>
           </md-text-button>
         </div>
@@ -312,15 +313,15 @@
       <NumberInput
         bind:value={panelCapacityWatts}
         icon="bolt"
-        label="Panel capacity"
-        suffix="Watts"
+        label={$isLoading ? 'Panel capacity' : $_('buildingInsights.panelCapacity')}
+        suffix={$isLoading ? 'Watts' : $_('buildingInsights.panelCapacitySuffix')}
         onChange={(e) => {
           // Update the panel config store when panel capacity changes
           updatePanelConfig({ panelCapacityWatts: e });
           console.log('BuildingInsightsSection: panelCapacityWatts changed to', e);
         }}
       />
-      <InputBool bind:value={showPanels} label="Solar panels" />
+      <InputBool bind:value={showPanels} label={$isLoading ? 'Solar panels' : $_('buildingInsights.solarPanels')} />
 
       <!-- <div class="grid justify-items-end">
         <md-filled-tonal-button role={undefined} on:click={() => apiResponseDialog.show()}>
@@ -340,7 +341,7 @@
         </div>
         <div slot="actions">
           <md-text-button role={undefined} on:click={() => apiResponseDialog.close()}>
-            Close
+            {$isLoading ? 'Close' : $_('common.close')}
           </md-text-button>
         </div>
       </md-dialog>
@@ -356,25 +357,25 @@
         rows={[
           {
             icon: 'wb_sunny',
-            name: 'Annual sunshine',
+            name: $isLoading ? 'Annual sunshine' : $_('buildingInsights.annualSunshine'),
             value: showNumber(buildingInsights.solarPotential.maxSunshineHoursPerYear),
             units: 'hr',
           },
           {
             icon: 'square_foot',
-            name: 'Roof area',
+            name: $isLoading ? 'Roof area' : $_('buildingInsights.roofArea'),
             value: showNumber(buildingInsights.solarPotential.wholeRoofStats.areaMeters2),
             units: 'm²',
           },
           {
             icon: 'solar_power',
-            name: 'Max panel count',
+            name: $isLoading ? 'Max panel count' : $_('buildingInsights.maxPanelCount'),
             value: showNumber(buildingInsights.solarPotential.solarPanels.length),
             units: 'panels',
           },
           {
             icon: 'co2',
-            name: 'CO₂ savings',
+            name: $isLoading ? 'CO₂ savings' : $_('buildingInsights.co2Savings'),
             value: showNumber(buildingInsights.solarPotential.carbonOffsetFactorKgPerMwh),
             units: 'Kg/MWh',
           },
@@ -385,7 +386,7 @@
         <div class="flex flex-col md:flex-row md:justify-around space-y-4 md:space-y-0">
           <Gauge
             icon="solar_power"
-            title="Panels count"
+            title={$isLoading ? 'Panels count' : $_('buildingInsights.panelsCount')}
             label={showNumber(getPanelCount($panelConfigStore))}
             labelSuffix={`/ ${showNumber(solarPanels.length)}`}
             max={solarPanels.length}
@@ -394,7 +395,7 @@
   
           <Gauge
             icon="energy_savings_leaf"
-            title="Yearly energy"
+            title={$isLoading ? 'Yearly energy' : $_('buildingInsights.yearlyEnergyKwh')}
             label={showNumber(getYearlyEnergy($panelConfigStore))}
             labelSuffix="KWh"
             max={buildingInsights.solarPotential.solarPanelConfigs.slice(-1)[0]

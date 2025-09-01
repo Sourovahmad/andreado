@@ -27,6 +27,8 @@
   import { onDestroy } from 'svelte';
   import { locationStore, updateLocation } from './stores/locationStore';
   import { panelConfigStore, updatePanelConfig } from './stores/panelConfigStore';
+  import { _, locale, isLoading } from 'svelte-i18n';
+  import LanguageSwitcher from './components/LanguageSwitcher.svelte';
   
   let isMobile = false;
   let showDrawer = false;
@@ -111,15 +113,37 @@
   let day = 14;
   let hour = 0;
   let layerId = 'monthlyFlux';
-  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  $: monthNames = $isLoading ? ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] : [
+    $_('months.jan'),
+    $_('months.feb'),
+    $_('months.mar'),
+    $_('months.apr'),
+    $_('months.may'),
+    $_('months.jun'),
+    $_('months.jul'),
+    $_('months.aug'),
+    $_('months.sep'),
+    $_('months.oct'),
+    $_('months.nov'),
+    $_('months.dec')
+  ];
   $: hourLabel = (() => {
     if (layerId === 'hourlyShade') {
-      if (hour == 0) return '12am';
-      if (hour < 10) return `${hour}am`;
-      if (hour < 12) return `${hour}am`;
-      if (hour == 12) return '12pm';
-      if (hour < 22) return `${hour - 12}pm`;
-      return `${hour - 12}pm`;
+      if ($isLoading) {
+        if (hour == 0) return '12am';
+        if (hour < 10) return `${hour}am`;
+        if (hour < 12) return `${hour}am`;
+        if (hour == 12) return '12pm';
+        if (hour < 22) return `${hour - 12}pm`;
+        return `${hour - 12}pm`;
+      } else {
+        if (hour == 0) return $_('time.midnight');
+        if (hour < 10) return `${hour}${$_('time.am')}`;
+        if (hour < 12) return `${hour}${$_('time.am')}`;
+        if (hour == 12) return $_('time.noon');
+        if (hour < 22) return `${hour - 12}${$_('time.pm')}`;
+        return `${hour - 12}${$_('time.pm')}`;
+      }
     }
     return '';
   })();
@@ -128,28 +152,32 @@
 {#if isMobile}
   <div class="relative w-full h-full bg-[#dde6ea]">
     <div class="absolute top-4 left-1/2 -translate-x-1/2 w-[90vw] max-w-xl z-20">
-      {#if placesLibrary && map}
-        <div class="rounded-full bg-[#e5e5e5] px-4 py-2 shadow-md">
-          <SearchBar bind:location {map} initialValue={defaultPlace.name} on:locationChange={(e) => {
-            // The location store is already updated in SearchBar component
-          }} />
-        </div>
-      {/if}
+      <div class="flex flex-col items-center gap-3">
+        {#if placesLibrary && map}
+          <div class="rounded-full bg-[#e5e5e5] px-4 py-2 shadow-md">
+            <SearchBar bind:location {map} initialValue={defaultPlace.name} on:locationChange={(e) => {
+              // The location store is already updated in SearchBar component
+            }} />
+          </div>
+        {/if}
+        <LanguageSwitcher />
+      </div>
     </div>
 
     <div bind:this={mapElement} class="absolute inset-0 w-full h-full z-10" />
     
 
     
-    <button class="fixed bottom-24 right-4 z-30 bg-white rounded-xl shadow-lg p-4 flex items-center justify-center gap-2" on:click={() => showDrawer = true} aria-label="Open menu">
+    <button class="fixed bottom-24 right-4 z-30 bg-white rounded-xl shadow-lg p-4 flex items-center justify-center gap-2" on:click={() => showDrawer = true} aria-label={$isLoading ? 'Open menu' : $_('page.openMenu')}>
       <svg width="28" height="28" fill="none" viewBox="0 0 24 24"><rect y="5" width="24" height="2" rx="1" fill="#222"/><rect y="11" width="24" height="2" rx="1" fill="#222"/><rect y="17" width="24" height="2" rx="1" fill="#222"/></svg>
-      <span class="text-base font-semibold" style="color: rgb(45, 77, 49);">Configura</span>
+      <span class="text-base font-semibold" style="color: rgb(45, 77, 49);">{$isLoading ? 'Configure' : $_('page.configure')}</span>
     </button>
     
     <!-- Overlay backdrop -->
     {#if showDrawer}
       <div class="fixed inset-0 z-40 bg-black/30" on:click={() => showDrawer = false}></div>
     {/if}
+    
     
     <!-- Drawer - now always rendered but hidden when closed -->
     <div class="fixed bottom-0 left-0 w-full z-50 bg-white rounded-t-2xl shadow-2xl p-4 max-h-[80vh] overflow-y-auto transition-transform duration-300 {showDrawer ? 'translate-y-0' : 'translate-y-full'}">
@@ -160,7 +188,7 @@
           bind:expandedSection
         />
       {/if}
-      <span class="block pt-4 text-center outline-text label-small">© 2025 Klaryo. All rights reserved.</span>
+      <span class="block pt-4 text-center outline-text label-small">{$isLoading ? '© 2025 Klaryo. All rights reserved.' : $_('page.copyright')}</span>
     </div>
   </div>
 {:else}
@@ -214,7 +242,7 @@
       </div> -->
 
         <span class="pb-4 text-center outline-text label-small" style="color: rgb(14, 14, 14);">
-          © 2025 Klaryo. All rights reserved.
+          {$isLoading ? '© 2025 Klaryo. All rights reserved.' : $_('page.copyright')}
         </span>
       </div>
     </aside>

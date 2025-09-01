@@ -37,6 +37,7 @@
   import type { MdSlider } from '@material/web/slider/slider';
   import { overlayState } from './overlayState';
   import { get } from 'svelte/store';
+  import { _, isLoading as i18nLoading } from 'svelte-i18n';
 
   export let expandedSection: string;
   export let showPanels = true;
@@ -47,7 +48,7 @@
   export let map: google.maps.Map;
 
   const icon = 'layers';
-  const title = 'Data Layers endpoint';
+  $: title = $i18nLoading ? 'Data Layers endpoint' : $_('sections.dataLayersEndpoint');
 
   const dataLayerOptions: Record<LayerId | 'none', string> = {
     none: 'No layer',
@@ -59,7 +60,7 @@
     hourlyShade: 'Hourly shade',
   };
 
-  const monthNames = [
+  $: monthNames = $i18nLoading ? [
     'Jan',
     'Feb',
     'Mar',
@@ -72,6 +73,19 @@
     'Oct',
     'Nov',
     'Dec',
+  ] : [
+    $_('months.jan'),
+    $_('months.feb'),
+    $_('months.mar'),
+    $_('months.apr'),
+    $_('months.may'),
+    $_('months.jun'),
+    $_('months.jul'),
+    $_('months.aug'),
+    $_('months.sep'),
+    $_('months.oct'),
+    $_('months.nov'),
+    $_('months.dec')
   ];
 
   let dataLayersResponse: DataLayersResponse | undefined;
@@ -83,8 +97,27 @@
   // Add computed variables for safe template usage
   let layerIdString = '';
   $: layerIdString = String(layerId);
-  $: dataLayerOptionsName = dataLayerOptions[layerId as keyof typeof dataLayerOptions];
-  const dataLayerOptionsString: Record<string, string> = dataLayerOptions;
+  $: dataLayerOptionsName = $i18nLoading ? dataLayerOptions[layerId as keyof typeof dataLayerOptions] : (() => {
+    const translations = {
+      none: $_('dataLayers.noLayer'),
+      mask: $_('dataLayers.roofMask'),
+      dsm: $_('dataLayers.digitalSurfaceModel'),
+      rgb: $_('dataLayers.aerialImage'),
+      annualFlux: $_('dataLayers.annualSunshine'),
+      monthlyFlux: $_('dataLayers.monthlySunshine'),
+      hourlyShade: $_('dataLayers.hourlyShade'),
+    };
+    return translations[layerId as keyof typeof translations] || dataLayerOptions[layerId as keyof typeof dataLayerOptions];
+  })();
+  $: dataLayerOptionsString = $i18nLoading ? dataLayerOptions : {
+    none: $_('dataLayers.noLayer'),
+    mask: $_('dataLayers.roofMask'),
+    dsm: $_('dataLayers.digitalSurfaceModel'),
+    rgb: $_('dataLayers.aerialImage'),
+    annualFlux: $_('dataLayers.annualSunshine'),
+    monthlyFlux: $_('dataLayers.monthlySunshine'),
+    hourlyShade: $_('dataLayers.hourlyShade'),
+  };
 
   // Use store values
   $: ({ layerId, month, day, hour, playAnimation, tick } = $overlayState);
@@ -365,7 +398,7 @@
       {:else if !layer || isLoading}
         <md-linear-progress four-color indeterminate />
         {#if isLoading}
-          <span class="outline-text label-small">Loading data layer...</span>
+          <span class="outline-text label-small">{$i18nLoading ? 'Loading data layer...' : $_('dataLayers.loadingDataLayer')}</span>
         {/if}
       {:else}
         {#if layer.id == 'hourlyShade'}
@@ -434,25 +467,13 @@
                 EGM96 geoid (i.e., sea level). Invalid locations (where we don't have data) are stored
                 as -9999.
               {:else if layerId == 'rgb'}
-                An image of RGB data (aerial photo) of the region.
+                {$i18nLoading ? 'An image of RGB data (aerial photo) of the region.' : $_('dataLayers.rgbDescription')}
               {:else if layerId == 'annualFlux'}
-                The annual flux map (annual sunlight on roofs) of the region. Values are kWh/kW/year.
-                This is unmasked flux: flux is computed for every location, not just building
-                rooftops. Invalid locations are stored as -9999: locations outside our coverage area
-                will be invalid, and a few locations inside the coverage area, where we were unable to
-                calculate flux, will also be invalid.
+                {$i18nLoading ? 'The annual flux map (annual sunlight on roofs) of the region. Values are kWh/kW/year. This is unmasked flux: flux is computed for every location, not just building rooftops. Invalid locations are stored as -9999: locations outside our coverage area will be invalid, and a few locations inside the coverage area, where we were unable to calculate flux, will also be invalid.' : $_('dataLayers.annualFluxDescription')}
               {:else if layerId == 'monthlyFlux'}
-                The monthly flux map (sunlight on roofs, broken down by month) of the region. Values
-                are kWh/kW/year. The GeoTIFF imagery file pointed to by this URL will contain twelve
-                bands, corresponding to January...December, in order.
+                {$i18nLoading ? 'The monthly flux map (sunlight on roofs, broken down by month) of the region. Values are kWh/kW/year. The GeoTIFF imagery file pointed to by this URL will contain twelve bands, corresponding to January...December, in order.' : $_('dataLayers.monthlyFluxDescription')}
               {:else if layerId == 'hourlyShade'}
-                Twelve URLs for hourly shade, corresponding to January...December, in order. Each
-                GeoTIFF imagery file will contain 24 bands, corresponding to the 24 hours of the day.
-                Each pixel is a 32 bit integer, corresponding to the (up to) 31 days of that month; a
-                1 bit means that the corresponding location is able to see the sun at that day, of
-                that hour, of that month. Invalid locations are stored as -9999 (since this is
-                negative, it has bit 31 set, and no valid value could have bit 31 set as that would
-                correspond to the 32nd day of the month).
+                {$i18nLoading ? 'Twelve URLs for hourly shade, corresponding to January...December, in order. Each GeoTIFF imagery file will contain 24 bands, corresponding to the 24 hours of the day. Each pixel is a 32 bit integer, corresponding to the (up to) 31 days of that month; a 1 bit means that the corresponding location is able to see the sun at that day, of that hour, of that month. Invalid locations are stored as -9999 (since this is negative, it has bit 31 set, and no valid value could have bit 31 set as that would correspond to the 32nd day of the month).' : $_('dataLayers.hourlyShadeDescription')}
               {/if}
             </p>
             {#if layer.palette}
@@ -489,25 +510,13 @@
                 EGM96 geoid (i.e., sea level). Invalid locations (where we don't have data) are stored
                 as -9999.
               {:else if layerId == 'rgb'}
-                An image of RGB data (aerial photo) of the region.
+                {$i18nLoading ? 'An image of RGB data (aerial photo) of the region.' : $_('dataLayers.rgbDescription')}
               {:else if layerId == 'annualFlux'}
-                The annual flux map (annual sunlight on roofs) of the region. Values are kWh/kW/year.
-                This is unmasked flux: flux is computed for every location, not just building
-                rooftops. Invalid locations are stored as -9999: locations outside our coverage area
-                will be invalid, and a few locations inside the coverage area, where we were unable to
-                calculate flux, will also be invalid.
+                {$i18nLoading ? 'The annual flux map (annual sunlight on roofs) of the region. Values are kWh/kW/year. This is unmasked flux: flux is computed for every location, not just building rooftops. Invalid locations are stored as -9999: locations outside our coverage area will be invalid, and a few locations inside the coverage area, where we were unable to calculate flux, will also be invalid.' : $_('dataLayers.annualFluxDescription')}
               {:else if layerId == 'monthlyFlux'}
-                The monthly flux map (sunlight on roofs, broken down by month) of the region. Values
-                are kWh/kW/year. The GeoTIFF imagery file pointed to by this URL will contain twelve
-                bands, corresponding to January...December, in order.
+                {$i18nLoading ? 'The monthly flux map (sunlight on roofs, broken down by month) of the region. Values are kWh/kW/year. The GeoTIFF imagery file pointed to by this URL will contain twelve bands, corresponding to January...December, in order.' : $_('dataLayers.monthlyFluxDescription')}
               {:else if layerId == 'hourlyShade'}
-                Twelve URLs for hourly shade, corresponding to January...December, in order. Each
-                GeoTIFF imagery file will contain 24 bands, corresponding to the 24 hours of the day.
-                Each pixel is a 32 bit integer, corresponding to the (up to) 31 days of that month; a
-                1 bit means that the corresponding location is able to see the sun at that day, of
-                that hour, of that month. Invalid locations are stored as -9999 (since this is
-                negative, it has bit 31 set, and no valid value could have bit 31 set as that would
-                correspond to the 32nd day of the month).
+                {$i18nLoading ? 'Twelve URLs for hourly shade, corresponding to January...December, in order. Each GeoTIFF imagery file will contain 24 bands, corresponding to the 24 hours of the day. Each pixel is a 32 bit integer, corresponding to the (up to) 31 days of that month; a 1 bit means that the corresponding location is able to see the sun at that day, of that hour, of that month. Invalid locations are stored as -9999 (since this is negative, it has bit 31 set, and no valid value could have bit 31 set as that would correspond to the 32nd day of the month).' : $_('dataLayers.hourlyShadeDescription')}
               {/if}
             </p>
             {#if layer.palette}

@@ -17,6 +17,9 @@
 <script lang="ts">
   import '../app.css';
   import '../theme/theme.css';
+  import '../lib/i18n';
+  import { _ } from 'svelte-i18n';
+  import LanguageSwitcher from './components/LanguageSwitcher.svelte';
 
   import '@material/web/button/elevated-button';
   import '@material/web/button/filled-button';
@@ -100,6 +103,11 @@
 .header-link:hover {
   color: var(--md-sys-color-secondary, #F9C846);
 }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
 .header-spacer {
   height: 64px;
 }
@@ -125,7 +133,10 @@
     <img src="https://cloud-1de12d.b-cdn.net/media/original/5218e9d86fadce683a898ac6b0656ae1/klaryo-blackv2-1.png" alt="Klaryo logo" />
     
   </div>
-  <a class="header-link" href="https://www.klaryo.it" target="_blank" rel="noopener">Back to Klaryo</a>
+  <div class="header-actions">
+    <LanguageSwitcher />
+    <a class="header-link" href="https://www.klaryo.it" target="_blank" rel="noopener">Back to Klaryo</a>
+  </div>
 </div>
 <div class="header-spacer"></div>
 <main class="surface on-surface-text body-medium flex flex-col w-screen h-screen">

@@ -20,6 +20,7 @@
   import type { BuildingInsightsResponse } from '../solar';
   import { locationStore, getLocationName } from '../stores/locationStore';
   import { panelConfigStore, getCurrentPanelConfig, getPanelCount, getYearlyEnergy } from '../stores/panelConfigStore';
+  import { _, isLoading } from 'svelte-i18n';
 
   export let location: google.maps.LatLng;
   export let buildingInsights: BuildingInsightsResponse | undefined = undefined;
@@ -194,10 +195,10 @@
   >
     {#if isGenerating}
       <md-circular-progress-four-color slot="icon" indeterminate />
-      Generating PDF...
+      {$isLoading ? 'Generating PDF...' : $_('pdf.generating')}
     {:else}
       <md-icon slot="icon">download</md-icon>
-      Download PDF Report
+      {$isLoading ? 'Download PDF Report' : $_('pdf.download')}
     {/if}
   </md-filled-button>
   

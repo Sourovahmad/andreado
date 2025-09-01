@@ -34,6 +34,7 @@
   import InputPercent from '../components/InputPercent.svelte';
   import InputRatio from '../components/InputRatio.svelte';
   import { panelConfigStore, getCurrentPanelConfig, getPanelCount, getYearlyEnergy, updatePanelConfig } from '../stores/panelConfigStore';
+  import { _, isLoading } from 'svelte-i18n';
 
   export let expandedSection: string;
   export let configId: number;
@@ -47,7 +48,7 @@
   export let resetToAutoConfig: () => void;
 
   const icon = 'payments';
-  const title = 'Solar Potential analysis';
+  $: title = $isLoading ? 'Solar Potential analysis' : $_('sections.solarPotential');
 
   let costChart: HTMLElement;
   let showAdvancedSettings = false;
@@ -268,8 +269,8 @@
   bind:section={expandedSection}
   {icon}
   {title}
-  subtitle="Values are only placeholders."
-  subtitle2="Update with your own values."
+  subtitle={$isLoading ? "Values are only placeholders." : $_('solarPotential.valuesPlaceholder')}
+  subtitle2={$isLoading ? "Update with your own values." : $_('solarPotential.updateValues')}
   secondary
 >
   <div class="flex flex-col space-y-4 pt-1">
@@ -293,7 +294,7 @@
     <InputMoney
       bind:value={monthlyAverageEnergyBillInput}
       icon="credit_card"
-      label="Monthly average energy bill"
+      label={$isLoading ? "Monthly average energy bill" : $_('solarPotential.monthlyEnergyBill')}
       onChange={updateConfig}
     />
 
@@ -331,28 +332,28 @@
     <InputMoney
       bind:value={energyCostPerKwhInput}
       icon="paid"
-      label="Energy cost per kWh"
+      label={$isLoading ? "Energy cost per kWh" : $_('solarPotential.energyCostPerKwh')}
       onChange={updateConfig}
     />
 
     <InputPercent
       bind:value={solarIncentivesPercent}
       icon="redeem"
-      label="Solar incentives"
+      label={$isLoading ? "Solar incentives" : $_('solarPotential.solarIncentives')}
       onChange={updateConfig}
     />
 
     <InputMoney
       bind:value={installationCostPerWatt}
       icon="request_quote"
-      label="Installation cost per Watt"
+      label={$isLoading ? "Installation cost per Watt" : $_('solarPotential.installationCostPerWatt')}
       onChange={updateConfig}
     />
 
     <InputNumber
       bind:value={panelCapacityWattsInput}
       icon="bolt"
-      label="Panel capacity"
+      label={$isLoading ? "Panel capacity" : $_('buildingInsights.panelCapacity')}
       suffix="Watts"
       onChange={updateConfig}
     />
@@ -376,7 +377,7 @@
         <InputNumber
           bind:value={installationLifeSpan}
           icon="date_range"
-          label="Installation lifespan"
+          label={$isLoading ? "Installation lifespan" : $_('solarPotential.installationLifeSpan')}
           suffix="years"
           onChange={updateConfig}
         />
@@ -384,14 +385,14 @@
         <InputPercent
           bind:value={dcToAcDerateInput}
           icon="dynamic_form"
-          label="DC to AC conversion "
+          label={$isLoading ? "DC to AC conversion " : $_('solarPotential.dcToAcDerate')}
           onChange={updateConfig}
         />
 
         <InputRatio
           bind:value={efficiencyDepreciationFactor}
           icon="trending_down"
-          label="Panel efficiency decline per year"
+          label={$isLoading ? "Panel efficiency decline per year" : $_('solarPotential.efficiencyDepreciation')}
           decrease
           onChange={updateConfig}
         />
@@ -399,14 +400,14 @@
         <InputRatio
           bind:value={costIncreaseFactor}
           icon="price_change"
-          label="Energy cost increase per year"
+          label={$isLoading ? "Energy cost increase per year" : $_('solarPotential.costIncreaseFactor')}
           onChange={updateConfig}
         />
 
         <InputRatio
           bind:value={discountRate}
           icon="local_offer"
-          label="Discount rate per year"
+          label={$isLoading ? "Discount rate per year" : $_('solarPotential.discountRate')}
           onChange={updateConfig}
         />
       </div>
@@ -435,7 +436,7 @@
         rows={[
           {
             icon: 'energy_savings_leaf',
-            name: 'Yearly energy',
+            name: $isLoading ? 'Yearly energy' : $_('solarPotential.yearlyEnergy'),
             value: showNumber(
               (solarPanelConfigs[configId]?.yearlyEnergyDcKwh ?? 0) * panelCapacityRatio,
             ),
@@ -443,13 +444,13 @@
           },
           {
             icon: 'speed',
-            name: 'Installation size',
+            name: $isLoading ? 'Installation size' : $_('solarPotential.installationSize'),
             value: showNumber(installationSizeKw),
             units: 'kW',
           },
           {
             icon: 'request_quote',
-            name: 'Installation cost',
+            name: $isLoading ? 'Installation cost' : $_('solarPotential.installationCost'),
             value: showMoney(installationCostTotal),
           },
           {
@@ -462,7 +463,7 @@
               'battery_5_bar',
               'battery_full',
             ][Math.floor(Math.min(Math.round(energyCovered * 100) / 100, 1) * 6)],
-            name: 'Energy covered',
+            name: $isLoading ? 'Energy covered' : $_('solarPotential.energyCovered'),
             value: Math.round(energyCovered * 100).toString(),
             units: '%',
           },
@@ -477,22 +478,22 @@
           rows={[
             {
               icon: 'wallet',
-              name: 'Cost without solar',
+              name: $isLoading ? 'Cost without solar' : $_('solarPotential.costWithoutSolar'),
               value: showMoney(totalCostWithoutSolar),
             },
             {
               icon: 'wb_sunny',
-              name: 'Cost with solar',
+              name: $isLoading ? 'Cost with solar' : $_('solarPotential.costWithSolar'),
               value: showMoney(totalCostWithSolar),
             },
             {
               icon: 'savings',
-              name: 'Savings',
+              name: $isLoading ? 'Savings' : $_('solarPotential.savings'),
               value: showMoney(savings),
             },
             {
               icon: 'balance',
-              name: 'Break even',
+              name: $isLoading ? 'Break even' : $_('solarPotential.breakEven'),
               value:
                 breakEvenYear >= 0
                   ? `${breakEvenYear + new Date().getFullYear() + 1} in ${breakEvenYear + 1}`
