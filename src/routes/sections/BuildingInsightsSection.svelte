@@ -96,10 +96,11 @@
 
   export async function showSolarPotential(location: google.maps.LatLng, forceRetry = false) {
     // If we already have building insights for this location and no error, don't refetch unless forced
-    if (requestSent || (!forceRetry && lastRequestedLocation && 
-        locationsEqual(lastRequestedLocation, location) && 
-        buildingInsights && !requestError)) {
-      
+    if (requestSent) {
+      return;
+    }
+    
+    if (!forceRetry && lastRequestedLocation && locationsEqual(lastRequestedLocation, location) && buildingInsights && !requestError) {
       // Still create solar panels if they don't exist but we have building insights
       if (buildingInsights && solarPanels.length === 0) {
         createSolarPanels();

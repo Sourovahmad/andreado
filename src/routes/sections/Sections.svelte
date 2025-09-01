@@ -57,7 +57,10 @@
         Math.abs(cache.location.lng - currentLoc.lng) < 0.00001 &&
         Date.now() - cache.timestamp < 5 * 60 * 1000) {
       
-      buildingInsights = cache.data;
+      // CRITICAL FIX: Only use cache if we don't already have different building insights
+      if (!buildingInsights || buildingInsights.name === cache.data.name) {
+        buildingInsights = cache.data;
+      }
     }
   }
 
