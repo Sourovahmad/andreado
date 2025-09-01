@@ -207,20 +207,6 @@
         .render(showRoofOnly, month, day)
         .map((canvas) => new google.maps.GroundOverlay(canvas.toDataURL(), bounds));
 
-      // Ensure map is centered on the building/layer area with smooth transition
-      const layerBounds = new google.maps.LatLngBounds(
-        new google.maps.LatLng(bounds.south, bounds.west),
-        new google.maps.LatLng(bounds.north, bounds.east)
-      );
-      // Use panTo for smoother transition instead of immediate fitBounds
-      const center = layerBounds.getCenter();
-      map.panTo(center);
-      
-      // Set zoom after a short delay for smoother experience
-      setTimeout(() => {
-        map.setZoom(19);
-      }, 300);
-      
       if (!['monthlyFlux', 'hourlyShade'].includes(layer.id)) {
         overlays[0].setMap(map);
       }
@@ -237,36 +223,9 @@
   }
 
   $: if (layer?.id == 'monthlyFlux') {
-    overlays.map((overlay, i) => {
-      const shouldShow = i == month;
-      overlay.setMap(shouldShow ? map : null);
-      if (shouldShow) {
-        // Check if map is far from overlay, then re-center smoothly
-        const overlayBounds = overlay.getBounds();
-        const mapCenter = map.getCenter();
-        if (overlayBounds && mapCenter) {
-          const overlayCenter = overlayBounds.getCenter();
-          const distance = google.maps.geometry.spherical.computeDistanceBetween(mapCenter, overlayCenter);
-          
-          // If map is more than 1km away from overlay, re-center it smoothly
-          if (distance > 1000) {
-            // Use smooth panTo instead of jarring fitBounds
-            map.panTo(overlayCenter);
-            // Ensure minimum zoom level for visibility with smooth transition
-            setTimeout(() => {
-              if (map.getZoom() && map.getZoom() < 18) {
-                map.setZoom(18);
-              }
-            }, 400);
-          }
-        }
-      }
-    });
+    overlays.map((overlay, i) => overlay.setMap(i == month ? map : null));
   } else if (layer?.id == 'hourlyShade') {
-    overlays.map((overlay, i) => {
-      const shouldShow = i == hour;
-      overlay.setMap(shouldShow ? map : null);
-    });
+    overlays.map((overlay, i) => overlay.setMap(i == hour ? map : null));
   }
 
   function onSliderChange(event: Event) {
@@ -329,7 +288,6 @@
 
   // Watch for buildingInsights changes and reset layer to force refresh
   let previousBuildingInsightsName: string | undefined;
-  let mapFocusTimeout: number | undefined;
   
   $: if (buildingInsights && buildingInsights.name !== previousBuildingInsightsName) {
     previousBuildingInsightsName = buildingInsights.name;
@@ -343,41 +301,9 @@
     overlays.map((overlay) => overlay.setMap(null));
     overlays = [];
     
-    // Clear any existing timeout
-    if (mapFocusTimeout) {
-      clearTimeout(mapFocusTimeout);
-    }
-    
     // Trigger showDataLayer if we have a valid layerId
     if (layerId !== 'none') {
       showDataLayer();
-      
-      // Set up a timeout to ensure map stays focused on building after SearchBar changes
-      mapFocusTimeout = setTimeout(() => {
-        if (buildingInsights && layer) {
-          const buildingBounds = new google.maps.LatLngBounds(
-            new google.maps.LatLng(layer.bounds.south, layer.bounds.west),
-            new google.maps.LatLng(layer.bounds.north, layer.bounds.east)
-          );
-          const mapCenter = map.getCenter();
-          
-          if (mapCenter) {
-            const buildingCenter = buildingBounds.getCenter();
-            const distance = google.maps.geometry.spherical.computeDistanceBetween(mapCenter, buildingCenter);
-            
-            // Only re-center if map is more than 500m away from building
-            if (distance > 500) {
-              // Use smooth panTo instead of jarring fitBounds
-              map.panTo(buildingCenter);
-              setTimeout(() => {
-                if (map.getZoom() && map.getZoom() < 18) {
-                  map.setZoom(18);
-                }
-              }, 300);
-            }
-          }
-        }
-      }, 800); // Wait 0.8 seconds for SearchBar to finish its map changes
     }
   }
 </script>
