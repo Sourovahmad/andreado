@@ -49,7 +49,8 @@
     "hide": "Hide",
     "retry": "Retry",
     "auto": "Auto",
-    "manual": "Manual"
+    "manual": "Manual",
+    "backToKlaryo": "Back to Klaryo"
   },
   "buildingInsights": {
     "description": "provides data on the location, dimensions & solar potential of a building.",
@@ -119,7 +120,6 @@
     "yearlyEnergyProduction": "Yearly energy production",
     "monthlyEnergyProduction": "Monthly energy production",
     "yearlyEnergyBill": "Yearly energy bill",
-    "monthlyEnergyBill": "Monthly energy bill",
     "yearlyCostWithSolar": "Yearly cost with solar",
     "monthlyCostWithSolar": "Monthly cost with solar",
     "yearlyCostWithoutSolar": "Yearly cost without solar",

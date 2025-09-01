@@ -49,7 +49,8 @@
     "hide": "Nascondi",
     "retry": "Riprova",
     "auto": "Automatico",
-    "manual": "Manuale"
+    "manual": "Manuale",
+    "backToKlaryo": "Torna a Klaryo"
   },
   "buildingInsights": {
     "description": "Fornisce dati sulla posizione, dimensioni e potenziale solare di un edificio.",

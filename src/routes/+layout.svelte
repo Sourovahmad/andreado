@@ -18,7 +18,7 @@
   import '../app.css';
   import '../theme/theme.css';
   import '../lib/i18n';
-  import { _ } from 'svelte-i18n';
+  import { _, isLoading } from 'svelte-i18n';
   import LanguageSwitcher from './components/LanguageSwitcher.svelte';
 
   import '@material/web/button/elevated-button';
@@ -135,7 +135,7 @@
   </div>
   <div class="header-actions">
     <LanguageSwitcher />
-    <a class="header-link" href="https://www.klaryo.it" target="_blank" rel="noopener">Back to Klaryo</a>
+    <a class="header-link" href="https://www.klaryo.it" target="_blank" rel="noopener">{$isLoading ? 'Back to Klaryo' : $_('common.backToKlaryo')}</a>
   </div>
 </div>
 <div class="header-spacer"></div>
