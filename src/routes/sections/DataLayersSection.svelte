@@ -407,22 +407,22 @@
 
         <span class="outline-text label-medium primary-text" style="color: rgb(14, 14, 14);">
           {#if imageryQuality == 'HIGH'}
-            <p><b>Low altitude aerial imagery</b> available.</p>
-            <p>Imagery and DSM data were processed at <b>10 cm/pixel</b>.</p>
+            <p><b>{$i18nLoading ? 'Low altitude aerial imagery' : $_('dataLayers.lowAltitudeImagery')}</b> available.</p>
+            <p>{$i18nLoading ? 'Imagery and DSM data were processed at' : $_('dataLayers.imageryProcessedAt')} <b>10 cm/pixel</b>.</p>
           {:else if imageryQuality == 'MEDIUM'}
-            <p><b>AI augmented aerial imagery</b> available.</p>
-            <p>Imagery and DSM data were processed at <b>25 cm/pixel</b>.</p>
+            <p><b>{$i18nLoading ? 'AI augmented aerial imagery' : $_('dataLayers.aiAugmentedImagery')}</b> available.</p>
+            <p>{$i18nLoading ? 'Imagery and DSM data were processed at' : $_('dataLayers.imageryProcessedAt')} <b>25 cm/pixel</b>.</p>
           {:else if imageryQuality == 'LOW'}
-            <p><b>AI augmented aerial or satellite imagery</b> available.</p>
-            <p>Imagery and DSM data were processed at <b>50 cm/pixel</b>.</p>
+            <p><b>{$i18nLoading ? 'AI augmented aerial or satellite imagery' : $_('dataLayers.aiAugmentedSatelliteImagery')}</b> available.</p>
+            <p>{$i18nLoading ? 'Imagery and DSM data were processed at' : $_('dataLayers.imageryProcessedAt')} <b>50 cm/pixel</b>.</p>
           {/if}
         </span>
 
-        <InputBool bind:value={showPanels} label="Solar panels" />
-        <InputBool bind:value={showRoofOnly} label="Roof only" onChange={() => showDataLayer()} />
+        <InputBool bind:value={showPanels} label={$i18nLoading ? 'Solar panels' : $_('dataLayers.solarPanels')} />
+        <InputBool bind:value={showRoofOnly} label={$i18nLoading ? 'Roof only' : $_('dataLayers.roofOnly')} onChange={() => showDataLayer()} />
 
         {#if ['monthlyFlux', 'hourlyShade'].includes(layerId)}
-          <InputBool bind:value={playAnimation} label="Play animation" />
+          <InputBool bind:value={playAnimation} label={$i18nLoading ? 'Play animation' : $_('dataLayers.playAnimation')} />
         {/if}
       {/if}
       <!-- <div class="flex flex-row">

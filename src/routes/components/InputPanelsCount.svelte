@@ -18,6 +18,7 @@
   import type { MdSlider } from '@material/web/slider/slider';
   import type { SolarPanelConfig } from '../solar';
   import { createEventDispatcher } from 'svelte';
+  import { _, isLoading } from 'svelte-i18n';
 
   export let configId: number;
   export let solarPanelConfigs: SolarPanelConfig[];
@@ -38,9 +39,9 @@
   <table class="table-auto w-full body-medium" style="color: rgb(14, 14, 14);">
     <tr>
       <td><md-icon>solar_power</md-icon> </td>
-      <th class="pl-2 text-left">Panels count</th>
+      <th class="pl-2 text-left">{$isLoading ? 'Panels count' : $_('buildingInsights.panelsCount')}</th>
       <td class="pl-2 text-right">
-        <span>{solarPanelConfigs[configId].panelsCount} panels</span>
+        <span>{solarPanelConfigs[configId].panelsCount} {$isLoading ? 'panels' : $_('buildingInsights.solarPanels')}</span>
       </td>
     </tr>
   </table>
