@@ -17,6 +17,7 @@
 <script lang="ts">
   /* global google */
   import { generateAndDownloadPDF, type PDFReportData } from '../services/pdfGenerator';
+  import { generateAdvancedPDF, type AdvancedPDFReportData } from '../services/advancedPdfGenerator';
   import type { BuildingInsightsResponse } from '../solar';
   import { locationStore, getLocationName } from '../stores/locationStore';
   import { panelConfigStore, getCurrentPanelConfig, getPanelCount, getYearlyEnergy } from '../stores/panelConfigStore';
@@ -82,6 +83,7 @@
       }
       
  
+      
       // Get current panel capacity from store (not from props)
       const currentPanelCapacityWatts = panelState.panelCapacityWatts;
       
@@ -142,7 +144,8 @@
       const yearlyEnergyFromStore = getYearlyEnergy(panelState);
       console.log('PDFDownloadButton: yearlyEnergyFromStore should be:', yearlyEnergyFromStore);
       
-      const pdfData: PDFReportData = {
+      // Use the advanced PDF generator with Italian styling
+      const advancedPdfData: AdvancedPDFReportData = {
         location: {
           name: currentLocationName,
           address: currentLocationName || buildingInsights!.name || 'Unknown Address',
@@ -169,10 +172,14 @@
         savings,
         breakEvenYear,
         energyCovered,
-        reportDate: new Date()
+        reportDate: new Date(),
+        // Customer data (can be made configurable later)
+        customerName: 'SIMONE CAIAZZO',
+        customerEmail: 'hello@digitaloriented.it',
+        customerPhone: '3913633776'
       };
 
-      await generateAndDownloadPDF(pdfData, mapElement);
+      await generateAdvancedPDF(advancedPdfData, mapElement);
     } catch (error: unknown) {
       console.error('Error generating PDF:', String(error));
       if (error instanceof Error) {
