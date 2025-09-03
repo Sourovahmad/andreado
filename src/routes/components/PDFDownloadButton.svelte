@@ -173,10 +173,21 @@
         breakEvenYear,
         energyCovered,
         reportDate: new Date(),
-        // Customer data (can be made configurable later)
-        customerName: 'SIMONE CAIAZZO',
-        customerEmail: 'hello@digitaloriented.it',
-        customerPhone: '3913633776'
+        // Customer data - using location name as fallback
+        customerName: currentLocationName || 'Cliente',
+        customerEmail: 'info@klaryo.it',
+        customerPhone: '059 788 0211',
+        // Market rates (Italian energy market)
+        marketRates: {
+          tutelatoRate: 0.34,  // €/kWh - Italian tutelato market rate
+          liberoRate: 0.32     // €/kWh - Italian libero market rate
+        },
+        // System performance (calculated from actual data)
+        systemPerformance: {
+          kwhPerKwp: undefined, // Will be calculated from actual solar data
+          selfConsumptionRate: 0.4, // 40% self-consumption rate
+          gridSaleRate: 0.10 // €/kWh for selling to grid in Italy
+        }
       };
 
       await generateAdvancedPDF(advancedPdfData, mapElement);
